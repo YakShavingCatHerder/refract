@@ -5,15 +5,15 @@ import sys
 import shutil
 from pathlib import Path
 
-# Base directory for tramp environments
-TRAMP_HOME = Path.home() / ".tramp"
-ENVS_DIR = TRAMP_HOME / "envs"
-CONFIG_PATH = TRAMP_HOME / "tramp.json"
+# Base directory for refract environments
+REFRACT_HOME = Path.home() / ".refract"
+ENVS_DIR = REFRACT_HOME / "envs"
+CONFIG_PATH = REFRACT_HOME / "refract.json"
 
 def ensure_symlink():
     # Path where the symlink should go
     bin_dir = os.path.expanduser("~/.local/bin")
-    symlink_path = os.path.join(bin_dir, "tramp")
+    symlink_path = os.path.join(bin_dir, "refract")
 
     # Absolute path to this script
     actual_path = os.path.abspath(sys.argv[0])
@@ -29,15 +29,15 @@ def ensure_symlink():
                 os.remove(symlink_path)
 
             os.symlink(actual_path, symlink_path)
-            print(f"[tramp] Symlink created: {symlink_path} → {actual_path}")
+            print(f"[refract] Symlink created: {symlink_path} → {actual_path}")
         except PermissionError:
-            print(f"[tramp] ⚠️  Permission denied creating symlink at {symlink_path}.")
+            print(f"[refract] ⚠️  Permission denied creating symlink at {symlink_path}.")
         except Exception as e:
-            print(f"[tramp] ⚠️  Could not create symlink: {e}")
+            print(f"[refract] ⚠️  Could not create symlink: {e}")
 
     # Check if ~/.local/bin is in PATH 
     if bin_dir not in os.environ.get("PATH", ""):
-        print(f"[tramp] ⚠️  ~/.local/bin is not in your PATH. Add it to run 'tramp' globally.")
+        print(f"[refract] ⚠️  ~/.local/bin is not in your PATH. Add it to run 'refract' globally.")
         
 
 def ensure_dirs():
@@ -54,7 +54,7 @@ def list_envs():
         for env in envs:
             print("  *", env)
     else:
-        print("No environments found. Use 'tramp init <name>' to create one.")
+        print("No environments found. Use 'refract init <name>' to create one.")
 
 
 def create_env(name):
@@ -62,19 +62,22 @@ def create_env(name):
     if env_path.exists():
         print(f"Environment '{name}' already exists.")
         return
-    subprocess.run([sys.executable, "-m", "virtualenv", str(env_path)])
+    if not name.isidentifier():
+        print("Environment name must be a valid identifier (no spaces or special characters).")
+        return 
+    subprocess.run([sys.executable, "-m", "venv", str(env_path)])
     print(f"Created new virtualenv at {env_path}")
 
 
 def activate_env(name):
     env_path = ENVS_DIR / name
-    activate_script = env_path / "bin" / "activate"
-    if not activate_script.exists():
+    activate_path = env_path / "bin" / "activate"
+    if not activate_path.exists():
         print(f"Environment '{name}' does not exist.")
         return
-    print(f"To activate '{name}', run:")
-    print(f"source {activate_script}")
 
+    print(f"[refract] Spawning shell for environment '{name}'...")
+    subprocess.run(["bash", "--rcfile", str(activate_path)])
 
 def remove_env(name):
     env_path = ENVS_DIR / name
@@ -87,19 +90,19 @@ def remove_env(name):
 
 def print_usage():
     print("""
-Tramp - Lightweight Virtualenv Manager
+refract - Lightweight Virtualenv Manager
 
 Usage:
-  tramp init <env_name>   Create a new virtual environment
-  tramp list              List all existing virtual environments
-  tramp use <env_name>    Show how to activate the specified environment
-  tramp rm <env_name>     Delete the specified virtual environment
+  refract init <env_name>   Create a new virtual environment
+  refract list              List all existing virtual environments
+  refract use <env_name>    Show how to activate the specified environment
+  refract rm <env_name>     Delete the specified virtual environment
 
 Examples:
-  tramp init myenv
-  tramp list
-  tramp use myenv
-  tramp rm myenv
+  refract init myenv
+  refract list
+  refract use myenv
+  refract rm myenv
     """)
 
 
@@ -107,7 +110,7 @@ def main():
     args = sys.argv[1:]
     debug_mode = '--debug' in args
     if debug_mode:
-        print(f"[DEBUG] TRAMP_HOME is set to: {TRAMP_HOME}")
+        print(f"[DEBUG] refract_HOME is set to: {REFRACT_HOME}")
     args = [arg for arg in args if arg != '--debug']
     ensure_dirs()
     if len(sys.argv) < 2:

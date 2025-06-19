@@ -1,12 +1,12 @@
 from setuptools import setup
 
 setup(
-    name='tramp',
+    name='refract',
     version='0.1',
-    py_modules=['tramp'],
+    py_modules=['refract'],
     entry_points={
         'console_scripts': [
-            'tramp = tramp:main',
+            'refract = refract:main',
         ],
     },
 )
