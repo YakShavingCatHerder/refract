@@ -2,7 +2,7 @@ import os
 import json
 import subprocess
 import sys
-import shutil
+import tempfile
 from pathlib import Path
 
 # Base directory for refract environments
@@ -67,17 +67,66 @@ def create_env(name):
         return 
     subprocess.run([sys.executable, "-m", "venv", str(env_path)])
     print(f"Created new virtualenv at {env_path}")
-
+    ensure_local_bin_in_path()
 
 def activate_env(name):
     env_path = ENVS_DIR / name
-    activate_path = env_path / "bin" / "activate"
-    if not activate_path.exists():
+    activate_script = env_path / "bin" / "activate"
+
+    if not activate_script.exists():
         print(f"Environment '{name}' does not exist.")
         return
 
-    print(f"[refract] Spawning shell for environment '{name}'...")
-    subprocess.run(["bash", "--rcfile", str(activate_path)])
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".sh") as tmp:
+        script_path = tmp.name
+        tmp.write(f"""#!/usr/bin/env bash
+# Load user profile to get PATH, aliases, etc.
+source ~/.profile 2>/dev/null || true
+source ~/.bash_profile 2>/dev/null || true
+source ~/.zshrc 2>/dev/null || true
+
+# Source the venv
+source "{activate_script}"
+
+# Drop into your preferred shell
+exec $SHELL --login
+""")
+    os.chmod(script_path, 0o755)
+
+    print(f"[refract] Switching to environment '{name}'...")
+    subprocess.run(["bash", script_path])
+
+    # Optional: Cleanup temp file after use
+    try:
+        os.remove(script_path)
+    except Exception:
+        pass
+
+def ensure_local_bin_in_path():
+    bin_path = "$HOME/.local/bin"
+    export_line = f'export PATH="{bin_path}:$PATH"\n'
+
+    shell = os.environ.get("SHELL", "")
+    config_files = []
+
+    if "zsh" in shell:
+        config_files = [Path.home() / ".zshrc"]
+    elif "bash" in shell:
+        config_files = [Path.home() / ".bash_profile", Path.home() / ".bashrc"]
+    else:
+        config_files = [Path.home() / ".profile"]
+
+    for config in config_files:
+        if config.exists():
+            with open(config, "r") as f:
+                if export_line.strip() in f.read():
+                    return  # Already set
+
+        # Append the export line
+        with open(config, "a") as f:
+            f.write(f"\n# Added by refract\n{export_line}")
+        print(f"[refract] Added '{bin_path}' to PATH in {config}")
+        return  # Only add to one file
 
 def remove_env(name):
     env_path = ENVS_DIR / name
