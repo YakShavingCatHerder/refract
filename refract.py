@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
+
 import os
 import json
 import subprocess
 import sys
-import shutil
+import tempfile
 from pathlib import Path
 
 # Base directory for refract environments
@@ -11,6 +13,7 @@ ENVS_DIR = REFRACT_HOME / "envs"
 CONFIG_PATH = REFRACT_HOME / "refract.json"
 
 def ensure_symlink():
+    """Create a symlink for manual installation (not needed when installed via pip)"""
     # Path where the symlink should go
     bin_dir = os.path.expanduser("~/.local/bin")
     symlink_path = os.path.join(bin_dir, "refract")
@@ -67,17 +70,68 @@ def create_env(name):
         return 
     subprocess.run([sys.executable, "-m", "venv", str(env_path)])
     print(f"Created new virtualenv at {env_path}")
-
+    ensure_local_bin_in_path()
 
 def activate_env(name):
     env_path = ENVS_DIR / name
-    activate_path = env_path / "bin" / "activate"
-    if not activate_path.exists():
+    activate_script = env_path / "bin" / "activate"
+
+    if not activate_script.exists():
         print(f"Environment '{name}' does not exist.")
         return
 
-    print(f"[refract] Spawning shell for environment '{name}'...")
-    subprocess.run(["bash", "--rcfile", str(activate_path)])
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".sh") as tmp:
+        script_path = tmp.name
+        tmp.write(f"""#!/usr/bin/env bash
+# Load user profile to get PATH, aliases, etc.
+source ~/.profile 2>/dev/null || true
+source ~/.bash_profile 2>/dev/null || true
+source ~/.zshrc 2>/dev/null || true
+
+# Source the venv
+source "{activate_script}"
+
+{get_prompt_setup_script(name)}
+
+# Drop into your preferred shell
+exec $SHELL --login
+""")
+    os.chmod(script_path, 0o755)
+
+    print(f"[refract] Switching to environment '{name}'...")
+    subprocess.run(["bash", script_path])
+
+    # Optional: Cleanup temp file after use
+    try:
+        os.remove(script_path)
+    except Exception:
+        pass
+
+def ensure_local_bin_in_path():
+    bin_path = "$HOME/.local/bin"
+    export_line = f'export PATH="{bin_path}:$PATH"\n'
+
+    shell = os.environ.get("SHELL", "")
+    config_files = []
+
+    if "zsh" in shell:
+        config_files = [Path.home() / ".zshrc"]
+    elif "bash" in shell:
+        config_files = [Path.home() / ".bash_profile", Path.home() / ".bashrc"]
+    else:
+        config_files = [Path.home() / ".profile"]
+
+    for config in config_files:
+        if config.exists():
+            with open(config, "r") as f:
+                if export_line.strip() in f.read():
+                    return  # Already set
+
+        # Append the export line
+        with open(config, "a") as f:
+            f.write(f"\n# Added by refract\n{export_line}")
+        print(f"[refract] Added '{bin_path}' to PATH in {config}")
+        return  # Only add to one file
 
 def remove_env(name):
     env_path = ENVS_DIR / name
@@ -88,35 +142,94 @@ def remove_env(name):
     print(f"Removed environment '{name}'")
 
 
+def show_current_env():
+    """Show the currently active refract environment"""
+    refract_env = os.environ.get("REFRACT_ENV")
+    if refract_env:
+        print(f"Currently in refract environment: \033[1;37m{refract_env}\033[0m")
+        return refract_env
+    else:
+        print("No refract environment currently active")
+        return None
+
+
+def get_prompt_setup_script(env_name):
+    """Generate shell-specific prompt setup script"""
+    return f"""
+# Set up colored prompt for refract environment
+export REFRACT_ENV="{env_name}"
+
+# Function to update prompt with refract environment
+update_refract_prompt() {{
+    if [ -n "$REFRACT_ENV" ]; then
+        # Colors: Light gray for refract environment
+        local refract_prompt="\\033[1;37m[refract:$REFRACT_ENV]\\033[0m "
+        
+        # For bash
+        if [ -n "$BASH_VERSION" ]; then
+            export PS1="$refract_prompt$PS1"
+        fi
+        
+        # For zsh
+        if [ -n "$ZSH_VERSION" ]; then
+            local zsh_prompt="%{{%F{{white}}%}}[refract:$REFRACT_ENV]%{{%f%}} "
+            export PROMPT="$zsh_prompt$PROMPT"
+        fi
+    fi
+}}
+
+# Update prompt immediately
+update_refract_prompt
+
+# Add to shell prompt function for persistence
+if [ -n "$BASH_VERSION" ]; then
+    # For bash, modify PS1
+    export PS1="\\033[1;37m[refract:{env_name}]\\033[0m $PS1"
+elif [ -n "$ZSH_VERSION" ]; then
+    # For zsh, modify PROMPT
+    export PROMPT="%{{%F{{white}}%}}[refract:{env_name}]%{{%f%}} $PROMPT"
+fi
+"""
+
+
 def print_usage():
     print("""
 refract - Lightweight Virtualenv Manager
 
 Usage:
+  refract install           Install refract globally (create symlink and update PATH)
   refract init <env_name>   Create a new virtual environment
   refract list              List all existing virtual environments
-  refract use <env_name>    Show how to activate the specified environment
+  refract use <env_name>    Activate the specified environment
+  refract current           Show currently active environment
   refract rm <env_name>     Delete the specified virtual environment
 
 Examples:
+  refract install
   refract init myenv
   refract list
   refract use myenv
+  refract current
   refract rm myenv
     """)
 
 
 def main():
+    """Main entry point for the refract command-line tool"""
     args = sys.argv[1:]
     debug_mode = '--debug' in args
     if debug_mode:
         print(f"[DEBUG] refract_HOME is set to: {REFRACT_HOME}")
     args = [arg for arg in args if arg != '--debug']
-    ensure_dirs()
-    if len(sys.argv) < 2:
-        print_usage()
+    
+    # Handle special commands first
+    if args and args[0] == "install":
+        ensure_symlink()
+        ensure_local_bin_in_path()
         return
-
+    
+    ensure_dirs()
+    
     if not args:
         print_usage()
         return
@@ -124,12 +237,14 @@ def main():
     cmd = args[0]
     if cmd == "list":
         list_envs()
-    elif cmd == "init" and len(sys.argv) == 3:
+    elif cmd == "init" and len(args) >= 2:
         create_env(args[1])
-    elif cmd == "use" and len(sys.argv) == 3:
-        activate_env(sys.argv[2])
-    elif cmd == "rm" and len(sys.argv) == 3:
-        remove_env(sys.argv[2])
+    elif cmd == "use" and len(args) >= 2:
+        activate_env(args[1])
+    elif cmd == "current":
+        show_current_env()
+    elif cmd == "rm" and len(args) >= 2:
+        remove_env(args[1])
     else:
         print("Invalid command or missing arguments.\n")
         print_usage()
