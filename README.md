@@ -11,6 +11,7 @@ Refract centralizes your Python virtual environments in a single location, provi
 - **🌍 Global Access**: Use `refract` from anywhere in your system
 - **📦 Zero Dependencies**: Only requires Python standard library
 - **🔄 Seamless Switching**: Instant environment activation with new shell sessions
+- **🎨 Colored Prompts**: Clear visual indication of active environment in shell prompt
 - **🗂️ Clean Organization**: Automatic directory structure management
 
 ## 📋 Table of Contents
@@ -150,11 +151,14 @@ $ refract use django_project
 - Sources your shell profile files (`.bash_profile`, `.zshrc`, etc.)
 - Activates the virtual environment
 - Opens a new shell session with the environment active
+- **Sets up colored prompt** showing the active refract environment
 
 **After activation, you'll see:**
 ```bash
-(django_project) shawn@MacBook-Pro ~ %
+[refract:django_project] shawn@MacBook-Pro ~ %
 ```
+
+The `[refract:django_project]` prefix appears in **light gray** to clearly indicate which refract environment is active.
 
 ### `refract rm <name>`
 
@@ -175,6 +179,26 @@ Removed environment 'old_project'
 - Validates the environment exists
 - Completely removes the environment directory
 - Provides confirmation message
+
+### `refract current`
+
+Shows the currently active refract environment.
+
+**Syntax:**
+```bash
+refract current
+```
+
+**Example:**
+```bash
+$ refract current
+Currently in refract environment: django_project
+```
+
+**What happens:**
+- Checks for the `REFRACT_ENV` environment variable
+- Displays the active environment name in light gray if one is active
+- Shows "No refract environment currently active" if none is active
 
 ### `refract install`
 
@@ -213,16 +237,16 @@ $ refract use frontend
 [refract] Switching to environment 'frontend'...
 
 # In the new shell session:
-(frontend) $ npm install
-(frontend) $ npm start
+[refract:frontend] $ npm install
+[refract:frontend] $ npm start
 
 # Switch to backend work (in another terminal)
 $ refract use backend
 [refract] Switching to environment 'backend'...
 
 # In the new shell session:
-(backend) $ pip install django
-(backend) $ python manage.py runserver
+[refract:backend] $ pip install django
+[refract:backend] $ python manage.py runserver
 ```
 
 ### Example 2: Data Science Workflow
@@ -235,13 +259,13 @@ $ refract init visualization
 
 # Switch between different analysis contexts
 $ refract use data_analysis
-(data_analysis) $ pip install pandas numpy matplotlib
+[refract:data_analysis] $ pip install pandas numpy matplotlib
 
 $ refract use ml_experiment
-(ml_experiment) $ pip install scikit-learn tensorflow
+[refract:ml_experiment] $ pip install scikit-learn tensorflow
 
 $ refract use visualization
-(visualization) $ pip install plotly seaborn bokeh
+[refract:visualization] $ pip install plotly seaborn bokeh
 ```
 
 ### Example 3: Project Cleanup
@@ -298,9 +322,28 @@ When you run `refract use <name>`, the following happens:
 2. **Script Generation**: Creates a temporary shell script that:
    - Sources your shell profile files
    - Activates the virtual environment
+   - **Sets up colored prompt** with `[refract:name]` prefix
    - Opens a new shell session
 3. **Execution**: Runs the script in a new shell process
 4. **Cleanup**: Removes the temporary script
+
+### Colored Prompt System
+
+Refract automatically modifies your shell prompt to show the active environment:
+
+- **Format**: `[refract:environment_name]` appears at the beginning of your prompt
+- **Color**: Light gray text (`\033[1;37m`) to make it easily visible
+- **Shell Support**: Works with both bash and zsh
+- **Environment Variable**: Sets `REFRACT_ENV` for programmatic access
+
+**Example prompts:**
+```bash
+# Regular prompt
+shawn@MacBook-Pro ~ %
+
+# With refract environment active
+[refract:django_project] shawn@MacBook-Pro ~ %
+```
 
 ### Global Access Setup
 

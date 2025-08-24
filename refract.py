@@ -91,6 +91,8 @@ source ~/.zshrc 2>/dev/null || true
 # Source the venv
 source "{activate_script}"
 
+{get_prompt_setup_script(name)}
+
 # Drop into your preferred shell
 exec $SHELL --login
 """)
@@ -140,6 +142,56 @@ def remove_env(name):
     print(f"Removed environment '{name}'")
 
 
+def show_current_env():
+    """Show the currently active refract environment"""
+    refract_env = os.environ.get("REFRACT_ENV")
+    if refract_env:
+        print(f"Currently in refract environment: \033[1;37m{refract_env}\033[0m")
+        return refract_env
+    else:
+        print("No refract environment currently active")
+        return None
+
+
+def get_prompt_setup_script(env_name):
+    """Generate shell-specific prompt setup script"""
+    return f"""
+# Set up colored prompt for refract environment
+export REFRACT_ENV="{env_name}"
+
+# Function to update prompt with refract environment
+update_refract_prompt() {{
+    if [ -n "$REFRACT_ENV" ]; then
+        # Colors: Light gray for refract environment
+        local refract_prompt="\\033[1;37m[refract:$REFRACT_ENV]\\033[0m "
+        
+        # For bash
+        if [ -n "$BASH_VERSION" ]; then
+            export PS1="$refract_prompt$PS1"
+        fi
+        
+        # For zsh
+        if [ -n "$ZSH_VERSION" ]; then
+            local zsh_prompt="%{{%F{{white}}%}}[refract:$REFRACT_ENV]%{{%f%}} "
+            export PROMPT="$zsh_prompt$PROMPT"
+        fi
+    fi
+}}
+
+# Update prompt immediately
+update_refract_prompt
+
+# Add to shell prompt function for persistence
+if [ -n "$BASH_VERSION" ]; then
+    # For bash, modify PS1
+    export PS1="\\033[1;37m[refract:{env_name}]\\033[0m $PS1"
+elif [ -n "$ZSH_VERSION" ]; then
+    # For zsh, modify PROMPT
+    export PROMPT="%{{%F{{white}}%}}[refract:{env_name}]%{{%f%}} $PROMPT"
+fi
+"""
+
+
 def print_usage():
     print("""
 refract - Lightweight Virtualenv Manager
@@ -149,6 +201,7 @@ Usage:
   refract init <env_name>   Create a new virtual environment
   refract list              List all existing virtual environments
   refract use <env_name>    Activate the specified environment
+  refract current           Show currently active environment
   refract rm <env_name>     Delete the specified virtual environment
 
 Examples:
@@ -156,6 +209,7 @@ Examples:
   refract init myenv
   refract list
   refract use myenv
+  refract current
   refract rm myenv
     """)
 
@@ -187,6 +241,8 @@ def main():
         create_env(args[1])
     elif cmd == "use" and len(args) >= 2:
         activate_env(args[1])
+    elif cmd == "current":
+        show_current_env()
     elif cmd == "rm" and len(args) >= 2:
         remove_env(args[1])
     else:
