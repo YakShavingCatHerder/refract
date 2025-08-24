@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import json
 import subprocess
@@ -11,6 +13,7 @@ ENVS_DIR = REFRACT_HOME / "envs"
 CONFIG_PATH = REFRACT_HOME / "refract.json"
 
 def ensure_symlink():
+    """Create a symlink for manual installation (not needed when installed via pip)"""
     # Path where the symlink should go
     bin_dir = os.path.expanduser("~/.local/bin")
     symlink_path = os.path.join(bin_dir, "refract")
@@ -142,12 +145,14 @@ def print_usage():
 refract - Lightweight Virtualenv Manager
 
 Usage:
+  refract install           Install refract globally (create symlink and update PATH)
   refract init <env_name>   Create a new virtual environment
   refract list              List all existing virtual environments
-  refract use <env_name>    Show how to activate the specified environment
+  refract use <env_name>    Activate the specified environment
   refract rm <env_name>     Delete the specified virtual environment
 
 Examples:
+  refract install
   refract init myenv
   refract list
   refract use myenv
@@ -156,16 +161,21 @@ Examples:
 
 
 def main():
+    """Main entry point for the refract command-line tool"""
     args = sys.argv[1:]
     debug_mode = '--debug' in args
     if debug_mode:
         print(f"[DEBUG] refract_HOME is set to: {REFRACT_HOME}")
     args = [arg for arg in args if arg != '--debug']
-    ensure_dirs()
-    if len(sys.argv) < 2:
-        print_usage()
+    
+    # Handle special commands first
+    if args and args[0] == "install":
+        ensure_symlink()
+        ensure_local_bin_in_path()
         return
-
+    
+    ensure_dirs()
+    
     if not args:
         print_usage()
         return
@@ -173,12 +183,12 @@ def main():
     cmd = args[0]
     if cmd == "list":
         list_envs()
-    elif cmd == "init" and len(sys.argv) == 3:
+    elif cmd == "init" and len(args) >= 2:
         create_env(args[1])
-    elif cmd == "use" and len(sys.argv) == 3:
-        activate_env(sys.argv[2])
-    elif cmd == "rm" and len(sys.argv) == 3:
-        remove_env(sys.argv[2])
+    elif cmd == "use" and len(args) >= 2:
+        activate_env(args[1])
+    elif cmd == "rm" and len(args) >= 2:
+        remove_env(args[1])
     else:
         print("Invalid command or missing arguments.\n")
         print_usage()
