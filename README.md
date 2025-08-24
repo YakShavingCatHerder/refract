@@ -6,13 +6,13 @@ Refract centralizes your Python virtual environments in a single location, provi
 
 ##  Features
 
-- ** Centralized Management**: All environments stored in `~/.refract/envs/`
-- ** Simple Commands**: Intuitive syntax that's easy to remember
-- ** Global Access**: Use `refract` from anywhere in your system
-- ** Zero Dependencies**: Only requires Python standard library
-- ** Seamless Switching**: Instant environment activation with new shell sessions
-- ** Colored Prompts**: Clear visual indication of active environment in shell prompt
-- ** Clean Organization**: Automatic directory structure management
+- **Centralized Management**: All environments stored in `~/.refract/envs/`
+- **Simple Commands**: Intuitive syntax that's easy to remember
+- **Global Access**: Use `refract` from anywhere in your system
+- **Zero Dependencies**: Only requires Python standard library
+- **Seamless Switching**: Instant environment activation with new shell sessions
+- **Colored Prompts**: Clear visual indication of active environment in shell prompt
+- **Clean Organization**: Automatic directory structure management
 
 ##  Table of Contents
 
