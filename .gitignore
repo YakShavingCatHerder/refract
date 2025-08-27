@@ -1,0 +1,18 @@
+# .gitignore
+
+# Python build artifacts
+*.egg-info/
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+env/
+venv/
+.refract/
+
+# System files
+.DS_Store
+.idea/
+.vscode/
+
