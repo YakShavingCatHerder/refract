@@ -17,3 +17,4 @@ pip3 uninstall refract -y
 echo "Uninstallation complete!"
 echo "Note: Your virtual environments in ~/.refract/envs/ are still available."
 echo "To remove them completely, run: rm -rf ~/.refract"
+
