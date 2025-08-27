@@ -35,11 +35,10 @@ Refract centralizes your Python virtual environments in a single location, provi
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
-cd refract
+git clone git@github.com:YakShavingCatHerder/refract.git &&
 
 # Run the installation script
-./install.sh
+cd refract && ./install.sh
 ```
 
 ### Option 2: Manual Install
@@ -97,7 +96,7 @@ refract init <environment_name>
 **Example:**
 ```bash
 $ refract init django_project
-Created new virtualenv at /Users/shawn/.refract/envs/django_project
+Created new virtualenv at /path/to/.refract/envs/django_project
 ```
 
 **What happens:**
@@ -155,7 +154,7 @@ $ refract use django_project
 
 **After activation, you'll see:**
 ```bash
-[refract:django_project] shawn@MacBook-Pro ~ %
+[refract:django_project] user@machine ~ %
 ```
 
 The `[refract:django_project]` prefix appears in **light gray** to clearly indicate which refract environment is active.
@@ -221,10 +220,10 @@ refract install
 ```bash
 # Create environments for different projects
 $ refract init frontend
-Created new virtualenv at /Users/shawn/.refract/envs/frontend
+Created new virtualenv at /Users/path/.refract/envs/frontend
 
 $ refract init backend
-Created new virtualenv at /Users/shawn/.refract/envs/backend
+Created new virtualenv at /Users/path/.refract/envs/backend
 
 # List all environments
 $ refract list
@@ -339,10 +338,10 @@ Refract automatically modifies your shell prompt to show the active environment:
 **Example prompts:**
 ```bash
 # Regular prompt
-shawn@MacBook-Pro ~ %
+user@machine ~ %
 
 # With refract environment active
-[refract:django_project] shawn@MacBook-Pro ~ %
+[refract:django_project] user@machine ~ %
 ```
 
 ### Global Access Setup
