@@ -370,6 +370,20 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
+#### Refract environment is active, but prompt prefix is missing
+
+**Problem**: `refract use <name>` activates the environment, but `[refract:<name>]` is not shown in your prompt.
+
+**Why this happens**: Some shell themes/frameworks rebuild the prompt and can override custom prompt text.
+
+**How to verify activation**:
+```bash
+echo $REFRACT_ENV
+which python
+```
+
+If active, `REFRACT_ENV` should contain your environment name and `which python` should point to `~/.refract/envs/<name>/bin/python`.
+
 #### "Permission denied: refract"
 
 **Problem**: The refract.py file doesn't have execute permissions.
