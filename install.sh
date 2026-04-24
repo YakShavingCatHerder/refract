@@ -2,7 +2,11 @@
 
 # Install refract using pip
 echo "Installing refract..."
-pip3 install -e . --user --break-system-packages
+if pip3 help install 2>/dev/null | rg -q -- "--break-system-packages"; then
+    pip3 install -e . --user --break-system-packages
+else
+    pip3 install -e . --user
+fi
 
 # Make sure the script is executable
 echo "Setting up permissions..."

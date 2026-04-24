@@ -39,19 +39,25 @@ git clone git@github.com:YakShavingCatHerder/refract.git &&
 
 # Run the installation script
 cd refract && ./install.sh
+
+# Reload your shell so PATH updates apply immediately
+source ~/.zshrc
 ```
 
 ### Option 2: Manual Install
 
 ```bash
 # Install using pip (macOS/Linux)
-pip3 install -e . --user --break-system-packages
+pip3 install -e . --user
 
 # Make the script executable
 chmod +x refract.py
 
 # Set up global access
 python3 -m refract install
+
+# Reload your shell so PATH updates apply immediately
+source ~/.zshrc
 ```
 
 ### Uninstall
@@ -441,7 +447,7 @@ cat ~/.refract/refract.json
 1. Clone the repository
 2. Install in development mode:
    ```bash
-   pip3 install -e . --user --break-system-packages
+   pip3 install -e . --user
    ```
 3. Make your changes
 4. Test your changes:
