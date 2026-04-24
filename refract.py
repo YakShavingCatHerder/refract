@@ -11,6 +11,8 @@ from pathlib import Path
 REFRACT_HOME = Path.home() / ".refract"
 ENVS_DIR = REFRACT_HOME / "envs"
 CONFIG_PATH = REFRACT_HOME / "refract.json"
+PROMPT_SNIPPET_START = "# >>> refract prompt integration >>>"
+PROMPT_SNIPPET_END = "# <<< refract prompt integration <<<"
 
 def ensure_symlink():
     """Create a symlink for manual installation (not needed when installed via pip)"""
@@ -48,6 +50,60 @@ def ensure_dirs():
     if not CONFIG_PATH.exists():
         with open(CONFIG_PATH, 'w') as f:
             json.dump({"active": None}, f)
+
+
+def _append_prompt_snippet_if_missing(config_path, snippet):
+    """Append prompt integration snippet to shell config once."""
+    if config_path.exists():
+        existing = config_path.read_text()
+        if PROMPT_SNIPPET_START in existing:
+            return False
+    with open(config_path, "a") as f:
+        f.write("\n" + snippet + "\n")
+    return True
+
+
+def ensure_prompt_integration():
+    """Install shell prompt hooks that render [refract:<env>] from REFRACT_ENV."""
+    zsh_snippet = f"""{PROMPT_SNIPPET_START}
+setopt PROMPT_SUBST 2>/dev/null || true
+autoload -Uz add-zsh-hook 2>/dev/null || true
+_refract_precmd() {{
+  [ -z "$REFRACT_ENV" ] && return
+  local refract_prefix="%{{%F{{white}}%}}[refract:$REFRACT_ENV]%{{%f%}} "
+  case "$PROMPT" in
+    "$refract_prefix"*) ;;
+    *) PROMPT="$refract_prefix$PROMPT" ;;
+  esac
+}}
+add-zsh-hook precmd _refract_precmd 2>/dev/null || true
+{PROMPT_SNIPPET_END}"""
+
+    bash_snippet = f"""{PROMPT_SNIPPET_START}
+__refract_prompt_command() {{
+  [ -z "$REFRACT_ENV" ] && return
+  local refract_prefix="\\[\\e[1;37m\\][refract:$REFRACT_ENV]\\[\\e[0m\\] "
+  case "$PS1" in
+    "$refract_prefix"*) ;;
+    *) PS1="$refract_prefix$PS1" ;;
+  esac
+}}
+case ";$PROMPT_COMMAND;" in
+  *";__refract_prompt_command;"*) ;;
+  *) PROMPT_COMMAND="${{PROMPT_COMMAND:+$PROMPT_COMMAND; }}__refract_prompt_command" ;;
+esac
+{PROMPT_SNIPPET_END}"""
+
+    shell = os.environ.get("SHELL", "")
+    if "zsh" in shell:
+        changed = _append_prompt_snippet_if_missing(Path.home() / ".zshrc", zsh_snippet)
+        if changed:
+            print("[refract] Added prompt integration to ~/.zshrc")
+    elif "bash" in shell:
+        target = Path.home() / ".bashrc"
+        changed = _append_prompt_snippet_if_missing(target, bash_snippet)
+        if changed:
+            print(f"[refract] Added prompt integration to {target}")
 
 
 def list_envs():
@@ -91,7 +147,8 @@ source ~/.zshrc 2>/dev/null || true
 # Source the venv
 source "{activate_script}"
 
-{get_prompt_setup_script(name)}
+# Set stable env marker for prompt integrations
+export REFRACT_ENV="{name}"
 
 # Drop into your preferred shell
 exec $SHELL --login
@@ -152,44 +209,6 @@ def show_current_env():
         return None
 
 
-def get_prompt_setup_script(env_name):
-    """Generate shell-specific prompt setup script"""
-    return f"""
-# Set up colored prompt for refract environment
-export REFRACT_ENV="{env_name}"
-
-# Function to update prompt with refract environment
-update_refract_prompt() {{
-    if [ -n "$REFRACT_ENV" ]; then
-        # Colors: Light gray for refract environment
-        local refract_prompt="\\033[1;37m[refract:$REFRACT_ENV]\\033[0m "
-        
-        # For bash
-        if [ -n "$BASH_VERSION" ]; then
-            export PS1="$refract_prompt$PS1"
-        fi
-        
-        # For zsh
-        if [ -n "$ZSH_VERSION" ]; then
-            local zsh_prompt="%{{%F{{white}}%}}[refract:$REFRACT_ENV]%{{%f%}} "
-            export PROMPT="$zsh_prompt$PROMPT"
-        fi
-    fi
-}}
-
-# Update prompt immediately
-update_refract_prompt
-
-# Add to shell prompt function for persistence
-if [ -n "$BASH_VERSION" ]; then
-    # For bash, modify PS1
-    export PS1="\\033[1;37m[refract:{env_name}]\\033[0m $PS1"
-elif [ -n "$ZSH_VERSION" ]; then
-    # For zsh, modify PROMPT
-    export PROMPT="%{{%F{{white}}%}}[refract:{env_name}]%{{%f%}} $PROMPT"
-fi
-"""
-
 def print_usage():
     print("""
 refract - Lightweight Virtualenv Manager
@@ -223,9 +242,11 @@ def main():
     if args and args[0] == "install":
         ensure_symlink()
         ensure_local_bin_in_path()
+        ensure_prompt_integration()
         return
     
     ensure_dirs()
+    ensure_prompt_integration()
 
     if not args:
         print_usage()
