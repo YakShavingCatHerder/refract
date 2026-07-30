@@ -31,7 +31,7 @@ BASH_COLOR_CODES = {
     "white": (37, 47),
 }
 
-DEFAULT_COLORWAY = {"background": None, "text": "white"}
+DEFAULT_COLORWAY = {"background": "green", "text": "black"}
 
 
 def load_config():
@@ -50,7 +50,7 @@ def save_config(config):
 def get_colorway():
     config = load_config()
     colorway = config.get("colorway", DEFAULT_COLORWAY)
-    return colorway.get("background"), colorway.get("text", "white")
+    return colorway.get("background", DEFAULT_COLORWAY["background"]), colorway.get("text", DEFAULT_COLORWAY["text"])
 
 
 def validate_color(name):
@@ -79,47 +79,17 @@ _refract_precmd() {{
 add-zsh-hook precmd _refract_precmd 2>/dev/null || true
 {PROMPT_SNIPPET_END}"""
 
-    fg_code, bg_code = BASH_COLOR_CODES[text][0], BASH_COLOR_CODES[background][1]
-    bash_open = f"\\[\\e[{bg_code};{fg_code}m\\]"
+    fg_code = BASH_COLOR_CODES[text][0]
+    if background:
+        bg_code = BASH_COLOR_CODES[background][1]
+        bash_open = f"\\[\\e[{bg_code};{fg_code}m\\]"
+    else:
+        bash_open = f"\\[\\e[1;{fg_code}m\\]"
     bash_close = "\\[\\e[0m\\]"
     bash_snippet = f"""{PROMPT_SNIPPET_START}
 __refract_prompt_command() {{
   [ -z "$REFRACT_ENV" ] && return
   local refract_prefix="{bash_open}[refract:$REFRACT_ENV]{bash_close} "
-  case "$PS1" in
-    "$refract_prefix"*) ;;
-    *) PS1="$refract_prefix$PS1" ;;
-  esac
-}}
-case ";$PROMPT_COMMAND;" in
-  *";__refract_prompt_command;"*) ;;
-  *) PROMPT_COMMAND="${{PROMPT_COMMAND:+$PROMPT_COMMAND; }}__refract_prompt_command" ;;
-esac
-{PROMPT_SNIPPET_END}"""
-
-    return zsh_snippet, bash_snippet
-
-
-def build_default_prompt_snippets():
-    """Build prompt snippets using the default colorway (white text, no background)."""
-    zsh_snippet = f"""{PROMPT_SNIPPET_START}
-setopt PROMPT_SUBST 2>/dev/null || true
-autoload -Uz add-zsh-hook 2>/dev/null || true
-_refract_precmd() {{
-  [ -z "$REFRACT_ENV" ] && return
-  local refract_prefix="%{{%F{{white}}%}}[refract:$REFRACT_ENV]%{{%f%}} "
-  case "$PROMPT" in
-    "$refract_prefix"*) ;;
-    *) PROMPT="$refract_prefix$PROMPT" ;;
-  esac
-}}
-add-zsh-hook precmd _refract_precmd 2>/dev/null || true
-{PROMPT_SNIPPET_END}"""
-
-    bash_snippet = f"""{PROMPT_SNIPPET_START}
-__refract_prompt_command() {{
-  [ -z "$REFRACT_ENV" ] && return
-  local refract_prefix="\\[\\e[1;37m\\][refract:$REFRACT_ENV]\\[\\e[0m\\] "
   case "$PS1" in
     "$refract_prefix"*) ;;
     *) PS1="$refract_prefix$PS1" ;;
@@ -169,7 +139,7 @@ def ensure_dirs():
     ENVS_DIR.mkdir(parents=True, exist_ok=True)
     if not CONFIG_PATH.exists():
         with open(CONFIG_PATH, 'w') as f:
-            json.dump({"active": None}, f)
+            json.dump({"active": None, "colorway": DEFAULT_COLORWAY}, f)
 
 
 def _write_prompt_snippet(config_path, snippet, force_update=False):
@@ -191,10 +161,7 @@ def _write_prompt_snippet(config_path, snippet, force_update=False):
 def ensure_prompt_integration(force_update=False):
     """Install shell prompt hooks that render [refract:<env>] from REFRACT_ENV."""
     background, text = get_colorway()
-    if background:
-        zsh_snippet, bash_snippet = build_prompt_snippets(background, text)
-    else:
-        zsh_snippet, bash_snippet = build_default_prompt_snippets()
+    zsh_snippet, bash_snippet = build_prompt_snippets(background, text)
 
     shell = os.environ.get("SHELL", "")
     if "zsh" in shell:
