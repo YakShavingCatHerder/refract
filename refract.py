@@ -59,14 +59,18 @@ def validate_color(name):
 
 def build_prompt_snippets(background, text):
     """Build zsh and bash prompt snippets for the given colorway."""
-    zsh_style = f"%K{{{background}}}%F{{{text}}}" if background else f"%F{{{text}}}"
-    zsh_reset = "%f%k" if background else "%f"
+    if background:
+        zsh_prefix_open = f"%{{%K{{{background}}}%F{{{text}}}%}}"
+        zsh_prefix_close = "%{%f%k%}"
+    else:
+        zsh_prefix_open = f"%{{%F{{{text}}}%}}"
+        zsh_prefix_close = "%{%f%}"
     zsh_snippet = f"""{PROMPT_SNIPPET_START}
 setopt PROMPT_SUBST 2>/dev/null || true
 autoload -Uz add-zsh-hook 2>/dev/null || true
 _refract_precmd() {{
   [ -z "$REFRACT_ENV" ] && return
-  local refract_prefix="%{{{zsh_style}}}[refract:$REFRACT_ENV]%{{{zsh_reset}}} "
+  local refract_prefix="{zsh_prefix_open}[refract:$REFRACT_ENV]{zsh_prefix_close} "
   case "$PROMPT" in
     "$refract_prefix"*) ;;
     *) PROMPT="$refract_prefix$PROMPT" ;;
