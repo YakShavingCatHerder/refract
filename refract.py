@@ -145,6 +145,96 @@ refract() {{
 {WRAPPER_SNIPPET_END}"""
 
 
+# Standard 8 ANSI color names supported by zsh and bash
+COLOR_NAMES = frozenset({
+    "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+})
+
+# Bash SGR codes: (foreground, background)
+BASH_COLOR_CODES = {
+    "black": (30, 40),
+    "red": (31, 41),
+    "green": (32, 42),
+    "yellow": (33, 43),
+    "blue": (34, 44),
+    "magenta": (35, 45),
+    "cyan": (36, 46),
+    "white": (37, 47),
+}
+
+DEFAULT_COLORWAY = {"background": "green", "text": "black"}
+
+
+def load_config():
+    ensure_dirs()
+    with open(CONFIG_PATH) as f:
+        return json.load(f)
+
+
+def save_config(config):
+    ensure_dirs()
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(config, f, indent=2)
+        f.write("\n")
+
+
+def get_colorway():
+    config = load_config()
+    colorway = config.get("colorway", DEFAULT_COLORWAY)
+    return colorway.get("background", DEFAULT_COLORWAY["background"]), colorway.get("text", DEFAULT_COLORWAY["text"])
+
+
+def validate_color(name):
+    return name.lower() in COLOR_NAMES
+
+
+def build_prompt_snippets(background, text):
+    """Build zsh and bash prompt snippets for the given colorway."""
+    if background:
+        zsh_prefix_open = f"%{{%K{{{background}}}%F{{{text}}}%}}"
+        zsh_prefix_close = "%{%f%k%}"
+    else:
+        zsh_prefix_open = f"%{{%F{{{text}}}%}}"
+        zsh_prefix_close = "%{%f%}"
+    zsh_snippet = f"""{PROMPT_SNIPPET_START}
+setopt PROMPT_SUBST 2>/dev/null || true
+autoload -Uz add-zsh-hook 2>/dev/null || true
+_refract_precmd() {{
+  [ -z "$REFRACT_ENV" ] && return
+  local refract_prefix="{zsh_prefix_open}[refract:$REFRACT_ENV]{zsh_prefix_close} "
+  case "$PROMPT" in
+    "$refract_prefix"*) ;;
+    *) PROMPT="$refract_prefix$PROMPT" ;;
+  esac
+}}
+add-zsh-hook precmd _refract_precmd 2>/dev/null || true
+{PROMPT_SNIPPET_END}"""
+
+    fg_code = BASH_COLOR_CODES[text][0]
+    if background:
+        bg_code = BASH_COLOR_CODES[background][1]
+        bash_open = f"\\[\\e[{bg_code};{fg_code}m\\]"
+    else:
+        bash_open = f"\\[\\e[1;{fg_code}m\\]"
+    bash_close = "\\[\\e[0m\\]"
+    bash_snippet = f"""{PROMPT_SNIPPET_START}
+__refract_prompt_command() {{
+  [ -z "$REFRACT_ENV" ] && return
+  local refract_prefix="{bash_open}[refract:$REFRACT_ENV]{bash_close} "
+  case "$PS1" in
+    "$refract_prefix"*) ;;
+    *) PS1="$refract_prefix$PS1" ;;
+  esac
+}}
+case ";$PROMPT_COMMAND;" in
+  *";__refract_prompt_command;"*) ;;
+  *) PROMPT_COMMAND="${{PROMPT_COMMAND:+$PROMPT_COMMAND; }}__refract_prompt_command" ;;
+esac
+{PROMPT_SNIPPET_END}"""
+
+    return zsh_snippet, bash_snippet
+
+
 def ensure_symlink():
     """Create a symlink for manual installation (not needed when installed via pip)"""
     # Path where the symlink should go
@@ -183,15 +273,15 @@ def ensure_dirs():
             json.dump({"active": None, "colorway": DEFAULT_COLORWAY}, f)
 
 
-def _write_marked_snippet(config_path, snippet, start_marker, end_marker, force_update=False):
-    """Write or update a marked snippet in a shell config file."""
+def _write_prompt_snippet(config_path, snippet, force_update=False):
+    """Write or update prompt integration snippet in a shell config file."""
     if config_path.exists():
         existing = config_path.read_text()
-        if start_marker in existing:
+        if PROMPT_SNIPPET_START in existing:
             if not force_update:
                 return False
-            start = existing.index(start_marker)
-            end = existing.index(end_marker) + len(end_marker)
+            start = existing.index(PROMPT_SNIPPET_START)
+            end = existing.index(PROMPT_SNIPPET_END) + len(PROMPT_SNIPPET_END)
             config_path.write_text(existing[:start] + snippet + existing[end:])
             return True
     with open(config_path, "a") as f:
@@ -199,71 +289,24 @@ def _write_marked_snippet(config_path, snippet, start_marker, end_marker, force_
     return True
 
 
-def _write_prompt_snippet(config_path, snippet, force_update=False):
-    return _write_marked_snippet(
-        config_path, snippet, PROMPT_SNIPPET_START, PROMPT_SNIPPET_END, force_update
-    )
-
-
-def _write_shell_wrapper(config_path, snippet, force_update=False):
-    return _write_marked_snippet(
-        config_path, snippet, WRAPPER_SNIPPET_START, WRAPPER_SNIPPET_END, force_update
-    )
-
-
-def setup_shell_integration(force_update=False):
-    """Install prompt hooks and shell wrapper in zsh and bash configs."""
-    ensure_dirs()
-    background, text = get_colorway()
-    zsh_prompt, bash_prompt = build_prompt_snippets(background, text)
-
-    prompt_updated = []
-    wrapper_updated = []
-    shell_configs = (
-        (Path.home() / ".zshrc", zsh_prompt, ZSH_SHELL_WRAPPER),
-        (Path.home() / ".bashrc", bash_prompt, BASH_SHELL_WRAPPER),
-    )
-    for path, prompt_snippet, wrapper_snippet in shell_configs:
-        if _write_prompt_snippet(path, prompt_snippet, force_update):
-            prompt_updated.append(str(path))
-        if _write_shell_wrapper(path, wrapper_snippet, force_update):
-            wrapper_updated.append(str(path))
-
-    return prompt_updated, wrapper_updated
-
-
 def ensure_prompt_integration(force_update=False):
     """Install shell prompt hooks that render [refract:<env>] from REFRACT_ENV."""
-    prompt_updated, _ = setup_shell_integration(force_update)
-    for path in prompt_updated:
-        action = "Updated" if force_update else "Added"
-        print(f"[refract] {action} prompt integration in {path}")
-
-
-def run_install():
-    """Set up refract for global use with a consistent shell environment."""
-    ensure_symlink()
-    ensure_local_bin_in_path()
-    prompt_updated, wrapper_updated = setup_shell_integration(force_update=True)
-
     background, text = get_colorway()
-    print(f"[refract] Default colorway: {background}/{text}")
-
-    if prompt_updated:
-        print(f"[refract] Installed prompt integration in: {', '.join(prompt_updated)}")
-    if wrapper_updated:
-        print(f"[refract] Installed shell wrapper in: {', '.join(wrapper_updated)}")
+    zsh_snippet, bash_snippet = build_prompt_snippets(background, text)
 
     shell = os.environ.get("SHELL", "")
     if "zsh" in shell:
-        rc_file = "~/.zshrc"
+        target = Path.home() / ".zshrc"
+        changed = _write_prompt_snippet(target, zsh_snippet, force_update)
+        if changed:
+            action = "Updated" if force_update else "Added"
+            print(f"[refract] {action} prompt integration in ~/.zshrc")
     elif "bash" in shell:
-        rc_file = "~/.bashrc"
-    else:
-        rc_file = "~/.zshrc or ~/.bashrc"
-
-    print("[refract] Installation complete.")
-    print(f"[refract] Run 'source {rc_file}' to activate shell integration.")
+        target = Path.home() / ".bashrc"
+        changed = _write_prompt_snippet(target, bash_snippet, force_update)
+        if changed:
+            action = "Updated" if force_update else "Added"
+            print(f"[refract] {action} prompt integration in {target}")
 
 
 def set_colorway(spec):
@@ -286,15 +329,18 @@ def set_colorway(spec):
     config["colorway"] = {"background": background, "text": text}
     save_config(config)
 
-    updated, _ = setup_shell_integration(force_update=True)
+    updated = []
+    background, text = get_colorway()
+    zsh_snippet, bash_snippet = build_prompt_snippets(background, text)
+    for path, snippet in [(Path.home() / ".zshrc", zsh_snippet),
+                          (Path.home() / ".bashrc", bash_snippet)]:
+        if _write_prompt_snippet(path, snippet, force_update=True):
+            updated.append(str(path))
 
     print(f"[refract] Colorway set to {background} background with {text} text.")
     if updated:
         print(f"[refract] Updated prompt integration in: {', '.join(updated)}")
-    if os.environ.get("REFRACT_COLORWAY_RELOAD") == "1":
-        print("[refract] Applied to current shell.")
-    else:
-        print("[refract] Run 'source ~/.zshrc' to pick up changes in this shell.")
+    print("[refract] Restart your shell or run 'source ~/.zshrc' to apply.")
 
 
 def list_envs():
