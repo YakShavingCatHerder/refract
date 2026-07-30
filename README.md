@@ -26,6 +26,14 @@ Refract centralizes your Python virtual environments in a single location, provi
 
 ##  Installation
 
+#### What refract install does
+- Creates ~/.refract/refract.json with the default green/black colorway
+- Installs prompt integration in both ~/.zshrc and ~/.bashrc
+- Installs the shell wrapper in both files (auto-reloads after refract colorway)
+- Sets up the symlink and PATH 
+
+##### Re-running refract install is idempotent and will only update existing snippets to the latest version, not duplicate them!
+
 ### Prerequisites
 
 - Python 3.7 or higher
