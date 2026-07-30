@@ -6,13 +6,13 @@ Refract centralizes your Python virtual environments in a single location, provi
 
 ##  Features
 
-- ** Centralized Management**: All environments stored in `~/.refract/envs/`
-- ** Simple Commands**: Intuitive syntax that's easy to remember
-- ** Global Access**: Use `refract` from anywhere in your system
-- ** Zero Dependencies**: Only requires Python standard library
-- ** Seamless Switching**: Instant environment activation with new shell sessions
-- ** Colored Prompts**: Clear visual indication of active environment in shell prompt
-- ** Clean Organization**: Automatic directory structure management
+- **Centralized Management**: All environments stored in `~/.refract/envs/`
+- **Simple Commands**: Intuitive syntax that's easy to remember
+- **Global Access**: Use `refract` from anywhere in your system
+- **Zero Dependencies**: Only requires Python standard library
+- **Seamless Switching**: Instant environment activation with new shell sessions
+- **Colored Prompts**: Clear visual indication of active environment in shell prompt
+- **Clean Organization**: Automatic directory structure management
 
 ##  Table of Contents
 
@@ -20,7 +20,6 @@ Refract centralizes your Python virtual environments in a single location, provi
 - [Quick Start](#quick-start)
 - [Commands Reference](#commands-reference)
 - [Usage Examples](#usage-examples)
-- [How It Works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 
@@ -72,7 +71,7 @@ source ~/.zshrc
 
 ```bash
 # Run the uninstall script
-./uninstall.sh
+cd User/path/to/refrect && ./uninstall.sh
 ```
 
 ##  Quick Start
@@ -95,14 +94,9 @@ refract rm myproject
 
 ##  Commands Reference
 
-### `refract init <name>`
+`refract init <name>`
 
 Creates a new virtual environment with the specified name.
-
-**Syntax:**
-```bash
-refract init <environment_name>
-```
 
 **Parameters:**
 - `environment_name`: Must be a valid Python identifier (letters, numbers, underscores only)
@@ -118,15 +112,10 @@ Created new virtualenv at /path/to/.refract/envs/django_project
 - Uses Python's built-in `venv` module
 - Validates the environment name format
 - Prevents duplicate environment creation
-
-### `refract list`
+---------------
+`refract list`
 
 Displays all available virtual environments.
-
-**Syntax:**
-```bash
-refract list
-```
 
 **Example Output:**
 ```bash
@@ -143,14 +132,10 @@ Available virtualenvs:
 - Lists all subdirectories as available environments
 - Shows helpful message if no environments exist
 
-### `refract use <name>`
+---------------
+`refract use <name>`
 
 Activates the specified virtual environment by opening a new shell session.
-
-**Syntax:**
-```bash
-refract use <environment_name>
-```
 
 **Example:**
 ```bash
@@ -159,28 +144,23 @@ $ refract use django_project
 ```
 
 **What happens:**
-- Validates the environment exists
-- Creates a temporary activation script
-- Sources your shell profile files (`.bash_profile`, `.zshrc`, etc.)
-- Activates the virtual environment
-- Opens a new shell session with the environment active
-- **Sets up colored prompt** showing the active refract environment
+1. Validates the environment exists
+2. Creates a temporary activation script that:
+  - Sources your shell profile files (`.bash_profile`, `.zshrc`, etc.)
+  - Activates the virtual environment
+  - Opens a new shell session with the environment active
+  - Sets up colored prompt showing the active refract environment with `[refract:name]` prefix
+3. Runs the script in a new shell process
+4. Removes the temporary script as a cleanup process
 
 **After activation, you'll see:**
 ```bash
 [refract:django_project] user@machine ~ %
 ```
-
-The `[refract:django_project]` prefix appears in **light gray** to clearly indicate which refract environment is active.
-
-### `refract rm <name>`
+---------------
+`refract rm <name>`
 
 Removes the specified virtual environment.
-
-**Syntax:**
-```bash
-refract rm <environment_name>
-```
 
 **Example:**
 ```bash
@@ -192,15 +172,10 @@ Removed environment 'old_project'
 - Validates the environment exists
 - Completely removes the environment directory
 - Provides confirmation message
-
-### `refract current`
+---------------
+`refract current`
 
 Shows the currently active refract environment.
-
-**Syntax:**
-```bash
-refract current
-```
 
 **Example:**
 ```bash
@@ -212,26 +187,21 @@ Currently in refract environment: django_project
 - Checks for the `REFRACT_ENV` environment variable
 - Displays the active environment name in light gray if one is active
 - Shows "No refract environment currently active" if none is active
-
-### `refract install`
+---------------
+`refract install`
 
 Sets up global access for refract (usually run automatically during installation).
-
-**Syntax:**
-```bash
-refract install
-```
 
 **What happens:**
 - Creates symlink in `~/.local/bin/`
 - Adds `~/.local/bin` to your PATH if not already present
 - Updates shell configuration files
 
-## 💡 Usage Examples
+## Usage Examples
 
 ### Example 1: Web Development Workflow
 
-```bash
+```
 # Create environments for different projects
 $ refract init frontend
 Created new virtualenv at /Users/path/.refract/envs/frontend
@@ -263,8 +233,7 @@ $ refract use backend
 ```
 
 ### Example 2: Data Science Workflow
-
-```bash
+```
 # Create specialized environments
 $ refract init data_analysis
 $ refract init ml_experiment
@@ -282,7 +251,6 @@ $ refract use visualization
 ```
 
 ### Example 3: Project Cleanup
-
 ```bash
 # List all environments
 $ refract list
@@ -305,8 +273,7 @@ Available virtualenvs:
   * old_project
   * current_project
 ```
-
-##  How It Works
+---------------
 
 ### Directory Structure
 
@@ -327,44 +294,14 @@ Refract creates and manages the following structure:
 └── refract.json            # Configuration file
 ```
 
-### Environment Activation Process
-
-When you run `refract use <name>`, the following happens:
-
-1. **Validation**: Checks if the environment exists
-2. **Script Generation**: Creates a temporary shell script that:
-   - Sources your shell profile files
-   - Activates the virtual environment
-   - **Sets up colored prompt** with `[refract:name]` prefix
-   - Opens a new shell session
-3. **Execution**: Runs the script in a new shell process
-4. **Cleanup**: Removes the temporary script
-
-### Colored Prompt System
+### Colored Prompts Feature
 
 Refract automatically modifies your shell prompt to show the active environment:
 
 - **Format**: `[refract:environment_name]` appears at the beginning of your prompt
-- **Color**: Light gray text (`\033[1;37m`) to make it easily visible
+- **Color**: Green background with black text by default to make current venv easily visible
 - **Shell Support**: Works with both bash and zsh
 - **Environment Variable**: Sets `REFRACT_ENV` for programmatic access
-
-**Example prompts:**
-```bash
-# Regular prompt
-user@machine ~ %
-
-# With refract environment active
-[refract:django_project] user@machine ~ %
-```
-
-### Global Access Setup
-
-The `refract install` command:
-
-1. **Creates Symlink**: Links `~/.local/bin/refract` to your refract.py script
-2. **Updates PATH**: Adds `~/.local/bin` to your shell's PATH variable
-3. **Shell Integration**: Updates `.bash_profile`, `.zshrc`, or `.profile`
 
 ##  Troubleshooting
 
@@ -484,25 +421,15 @@ cat ~/.refract/refract.json
 - Add docstrings to functions
 - Include error handling
 
-### Testing
-
-Test all commands with various scenarios:
-- Valid environment names
-- Invalid environment names
-- Non-existent environments
-- Duplicate environment creation
-- Environment activation
-- Environment removal
-
 ##  License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ##  Acknowledgments
 
-- Built with Python's standard library
-- Inspired by the need for simpler virtual environment management
-- Thanks to the Python community for the excellent `venv` module
+- Built with 1 dependency: Python's standard library
+- Inspired by the need for simpler, cli-native management of virtual environments; perfect for deploying to lightweight servers when needed
+- Thanks to the Python community for the excellent `venv` module; this isn't a diss, just a specific use-case ;)
 
 ---
 
