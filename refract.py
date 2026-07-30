@@ -13,6 +13,137 @@ ENVS_DIR = REFRACT_HOME / "envs"
 CONFIG_PATH = REFRACT_HOME / "refract.json"
 PROMPT_SNIPPET_START = "# >>> refract prompt integration >>>"
 PROMPT_SNIPPET_END = "# <<< refract prompt integration <<<"
+WRAPPER_SNIPPET_START = "# >>> refract shell wrapper >>>"
+WRAPPER_SNIPPET_END = "# <<< refract shell wrapper <<<"
+
+# Standard 8 ANSI color names supported by zsh and bash
+COLOR_NAMES = frozenset({
+    "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+})
+
+# Bash SGR codes: (foreground, background)
+BASH_COLOR_CODES = {
+    "black": (30, 40),
+    "red": (31, 41),
+    "green": (32, 42),
+    "yellow": (33, 43),
+    "blue": (34, 44),
+    "magenta": (35, 45),
+    "cyan": (36, 46),
+    "white": (37, 47),
+}
+
+DEFAULT_COLORWAY = {"background": "green", "text": "black"}
+
+
+def load_config():
+    ensure_dirs()
+    with open(CONFIG_PATH) as f:
+        return json.load(f)
+
+
+def save_config(config):
+    ensure_dirs()
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(config, f, indent=2)
+        f.write("\n")
+
+
+def get_colorway():
+    config = load_config()
+    colorway = config.get("colorway", DEFAULT_COLORWAY)
+    return colorway.get("background", DEFAULT_COLORWAY["background"]), colorway.get("text", DEFAULT_COLORWAY["text"])
+
+
+def validate_color(name):
+    return name.lower() in COLOR_NAMES
+
+
+def build_prompt_snippets(background, text):
+    """Build zsh and bash prompt snippets for the given colorway."""
+    if background:
+        zsh_prefix_open = f"%{{%K{{{background}}}%F{{{text}}}%}}"
+        zsh_prefix_close = "%{%f%k%}"
+    else:
+        zsh_prefix_open = f"%{{%F{{{text}}}%}}"
+        zsh_prefix_close = "%{%f%}"
+    zsh_snippet = f"""{PROMPT_SNIPPET_START}
+setopt PROMPT_SUBST 2>/dev/null || true
+autoload -Uz add-zsh-hook 2>/dev/null || true
+_refract_precmd() {{
+  [ -z "$REFRACT_ENV" ] && return
+  local refract_prefix="{zsh_prefix_open}[refract:$REFRACT_ENV]{zsh_prefix_close} "
+  case "$PROMPT" in
+    "$refract_prefix"*) ;;
+    *) PROMPT="$refract_prefix$PROMPT" ;;
+  esac
+}}
+add-zsh-hook precmd _refract_precmd 2>/dev/null || true
+{PROMPT_SNIPPET_END}"""
+
+    fg_code = BASH_COLOR_CODES[text][0]
+    if background:
+        bg_code = BASH_COLOR_CODES[background][1]
+        bash_open = f"\\[\\e[{bg_code};{fg_code}m\\]"
+    else:
+        bash_open = f"\\[\\e[1;{fg_code}m\\]"
+    bash_close = "\\[\\e[0m\\]"
+    bash_snippet = f"""{PROMPT_SNIPPET_START}
+__refract_prompt_command() {{
+  [ -z "$REFRACT_ENV" ] && return
+  local refract_prefix="{bash_open}[refract:$REFRACT_ENV]{bash_close} "
+  case "$PS1" in
+    "$refract_prefix"*) ;;
+    *) PS1="$refract_prefix$PS1" ;;
+  esac
+}}
+case ";$PROMPT_COMMAND;" in
+  *";__refract_prompt_command;"*) ;;
+  *) PROMPT_COMMAND="${{PROMPT_COMMAND:+$PROMPT_COMMAND; }}__refract_prompt_command" ;;
+esac
+{PROMPT_SNIPPET_END}"""
+
+    return zsh_snippet, bash_snippet
+
+
+ZSH_SHELL_WRAPPER = f"""{WRAPPER_SNIPPET_START}
+refract() {{
+  if [[ "$1" == "colorway" && -n "$2" ]]; then
+    REFRACT_COLORWAY_RELOAD=1 command refract "$@"
+  else
+    command refract "$@"
+  fi
+  local ret=$?
+  if (( ret == 0 )) && [[ "$1" == "colorway" && -n "$2" ]]; then
+    if [[ -n "$REFRACT_ENV" && "$PROMPT" == *"[refract:$REFRACT_ENV]"* ]]; then
+      PROMPT="${{PROMPT#*[refract:$REFRACT_ENV] }}"
+    fi
+    source "${{ZDOTDIR:-$HOME}}/.zshrc" 2>/dev/null || true
+    (( ${{+functions[_refract_precmd]}} )) && _refract_precmd
+  fi
+  return ret
+}}
+{WRAPPER_SNIPPET_END}"""
+
+BASH_SHELL_WRAPPER = f"""{WRAPPER_SNIPPET_START}
+refract() {{
+  if [[ "$1" == "colorway" && -n "$2" ]]; then
+    REFRACT_COLORWAY_RELOAD=1 command refract "$@"
+  else
+    command refract "$@"
+  fi
+  local ret=$?
+  if [[ $ret -eq 0 && "$1" == "colorway" && -n "$2" ]]; then
+    if [[ -n "$REFRACT_ENV" && "$PS1" == *"[refract:$REFRACT_ENV]"* ]]; then
+      PS1="${{PS1#*[refract:$REFRACT_ENV] }}"
+    fi
+    source "$HOME/.bashrc" 2>/dev/null || true
+    type __refract_prompt_command &>/dev/null && __refract_prompt_command
+  fi
+  return $ret
+}}
+{WRAPPER_SNIPPET_END}"""
+
 
 # Standard 8 ANSI color names supported by zsh and bash
 COLOR_NAMES = frozenset({
@@ -354,9 +485,7 @@ def main():
     args = [arg for arg in args if arg != '--debug']    
     # Handle special commands first
     if args and args[0] == "install":
-        ensure_symlink()
-        ensure_local_bin_in_path()
-        ensure_prompt_integration()
+        run_install()
         return
     
     ensure_dirs()
