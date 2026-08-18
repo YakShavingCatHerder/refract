@@ -1,4 +1,4 @@
-# refract 
+<img width="1536" height="1024" alt="refract" src="https://github.com/user-attachments/assets/4fb203a1-d155-4a07-b7fe-a96b687f2efe" />
 
 **Lightweight Virtual Environment Manager for Python**
 
