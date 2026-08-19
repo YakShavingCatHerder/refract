@@ -1,4 +1,4 @@
-<img width="1536" height="1024" alt="refract" src="https://github.com/user-attachments/assets/4fb203a1-d155-4a07-b7fe-a96b687f2efe" />
+<img width="1228" height="407" alt="Screenshot 2026-08-18 at 20 58 54" src="https://github.com/user-attachments/assets/c9759315-d5ed-4844-b3d4-612b71d779e5" />
 
 **Lightweight Virtual Environment Manager for Python**
 
