@@ -18,3 +18,4 @@ fi
 echo "Uninstallation complete."
 echo "Virtual environments in ~/.refract/envs/ were left in place."
 echo "To remove them completely, run: rm -rf ~/.refract"
+
