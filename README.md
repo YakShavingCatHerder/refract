@@ -26,6 +26,7 @@ Refract centralizes your Python virtual environments in a single location, provi
 - [Commands Reference](#commands-reference)
 - [Usage Examples](#usage-examples)
 - [Troubleshooting](#troubleshooting)
+- [Changelog](CHANGELOG.md)
 - [Contributing](#contributing)
 
 ##  Installation
@@ -461,6 +462,8 @@ Regenerate the README GIF with [VHS](https://github.com/charmbracelet/vhs):
 ```bash
 ./demo/record.sh
 ```
+
+Add user-facing changes under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md). Move that block into a version heading when you tag.
 
 ### Code Style
 
