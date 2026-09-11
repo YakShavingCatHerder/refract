@@ -1,20 +1,18 @@
 #!/bin/bash
+set -euo pipefail
 
 echo "Uninstalling refract..."
 
-# Remove the symlink
-if [ -L ~/.local/bin/refract ]; then
-    rm ~/.local/bin/refract
-    echo "Removed symlink from ~/.local/bin/refract"
+if command -v pipx >/dev/null 2>&1; then
+    pipx uninstall refract 2>/dev/null || true
+fi
+python3 -m pip uninstall -y refract 2>/dev/null || true
+
+if [ -e "${HOME}/.local/bin/refract" ] || [ -L "${HOME}/.local/bin/refract" ]; then
+    rm -f "${HOME}/.local/bin/refract"
+    echo "Removed ${HOME}/.local/bin/refract"
 fi
 
-# Uninstall the package
-pip3 uninstall refract -y
-
-# Remove the refract home directory (optional - uncomment if you want to remove all environments)
-# rm -rf ~/.refract
-
-echo "Uninstallation complete!"
-echo "Note: Your virtual environments in ~/.refract/envs/ are still available."
+echo "Uninstallation complete."
+echo "Virtual environments in ~/.refract/envs/ were left in place."
 echo "To remove them completely, run: rm -rf ~/.refract"
-
