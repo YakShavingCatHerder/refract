@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source-tree tests for ./install.sh (python-only, --pip, --pipx)."""
+"""Source-tree tests for ./install.sh (python-only, --pipx)."""
 
 from __future__ import annotations
 
@@ -73,12 +73,6 @@ class InstallScriptTests(unittest.TestCase):
     def test_python_only(self):
         result = self._run_install()
         self.assertTrue((self.home / ".local" / "bin" / "refract").is_file(), result.stdout)
-        self._assert_installed(result)
-
-    def test_pip(self):
-        if os.environ.get("REFRACT_TEST_INSTALL_METHOD", "pip") not in ("pip", "all"):
-            self.skipTest("not this install method")
-        result = self._run_install("--pip")
         self._assert_installed(result)
 
     def test_pipx(self):

@@ -7,7 +7,6 @@ Install Refract from this source tree.
 
 Usage:
   ./install.sh          Python 3 only (copy refract.py onto PATH)
-  ./install.sh --pip    python3 + pip (editable install)
   ./install.sh --pipx   python3 + pipx (editable install)
   ./install.sh --help
 
@@ -46,15 +45,10 @@ install_python_only() {
     echo "[refract] Installed $HOME/.local/bin/refract"
 }
 
-install_with_pip() {
-    echo "Installing refract with python3 + pip..."
-    python3 -m pip install --user --editable "$ROOT"
-}
-
 install_with_pipx() {
     echo "Installing refract with python3 + pipx..."
     if ! command -v pipx >/dev/null 2>&1; then
-        echo "pipx was not found. Install pipx, or use ./install.sh or ./install.sh --pip." >&2
+        echo "pipx was not found. Install pipx, or use ./install.sh." >&2
         exit 1
     fi
     pipx install --editable "$ROOT"
@@ -64,7 +58,7 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
 case "${1:-}" in
-    ""|--pip|--pipx) ;;
+    ""|--pipx) ;;
     -h|--help) usage; exit 0 ;;
     *)
         echo "Unknown option: $1" >&2
@@ -81,7 +75,6 @@ fi
 ensure_local_bin_on_path
 
 case "${1:-}" in
-    --pip) install_with_pip ;;
     --pipx) install_with_pipx ;;
     *) install_python_only ;;
 esac
