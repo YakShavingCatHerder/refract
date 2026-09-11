@@ -4,6 +4,10 @@
 
 Refract centralizes your Python virtual environments in a single location, providing simple commands to create, manage, and switch between project contexts—without the complexity of traditional virtual environment tools.
 
+## Demo
+
+![refract demo](demo/refract.gif)
+
 ##  Features
 
 - **Centralized Management**: All environments stored in `~/.refract/envs/`
@@ -16,6 +20,7 @@ Refract centralizes your Python virtual environments in a single location, provi
 
 ##  Table of Contents
 
+- [Demo](#demo)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Commands Reference](#commands-reference)
@@ -455,6 +460,12 @@ python -m unittest discover -s tests -v -p 'test_cli.py'
 ```
 
 `./install.sh` methods are tested in CI with `REFRACT_TEST_INSTALL_SH=1`.
+
+Regenerate the README GIF with [VHS](https://github.com/charmbracelet/vhs):
+
+```bash
+./demo/record.sh
+```
 
 ### Code Style
 
