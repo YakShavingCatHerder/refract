@@ -25,54 +25,89 @@ Refract centralizes your Python virtual environments in a single location, provi
 
 ##  Installation
 
-#### What refract install does
-- Creates ~/.refract/refract.json with the default green/black colorway
-- Installs prompt integration in both ~/.zshrc and ~/.bashrc
-- Installs the shell wrapper in both files (auto-reloads after refract colorway)
-- Sets up the symlink and PATH 
+Refract itself depends only on Python's standard library. The `refract` command and `refract install` (shell integration) are separate steps.
 
-##### Re-running refract install is idempotent and will only update existing snippets to the latest version, not duplicate them!
+**macOS and Linux only.** Windows is not supported.
 
 ### Prerequisites
 
-- Python 3.7 or higher
-- pip3 (usually comes with Python)
+- Python 3.10 or higher
+- bash or zsh
 
-### Option 1: Quick Install (Recommended)
+pip is optional. pipx is optional.
 
-```bash
-# Clone the repository
-git clone git@github.com:YakShavingCatHerder/refract.git &&
+### From source (Python 3 only)
 
-# Run the installation script
-cd refract && ./install.sh
-
-# Reload your shell so PATH updates apply immediately
-source ~/.zshrc
-```
-
-### Option 2: Manual Install
+Best for minimal servers that may not have pip:
 
 ```bash
-# Install using pip (macOS/Linux)
-pip3 install -e . --user
-
-# Make the script executable
-chmod +x refract.py
-
-# Set up global access
-python3 -m refract install
-
-# Reload your shell so PATH updates apply immediately
-source ~/.zshrc
+git clone git@github.com:YakShavingCatHerder/refract.git
+cd refract
+./install.sh
+source ~/.zshrc    # bash: source ~/.bashrc
 ```
+
+This copies `refract.py` to `~/.local/bin/refract`, then runs `refract install`.
+
+### From source with pip
+
+```bash
+git clone git@github.com:YakShavingCatHerder/refract.git
+cd refract
+./install.sh --pip
+source ~/.zshrc    # bash: source ~/.bashrc
+```
+
+### From source with pipx (optional)
+
+```bash
+./install.sh --pipx
+source ~/.zshrc    # bash: source ~/.bashrc
+```
+
+### From PyPI
+
+The distribution name is `refract-venv`. The command is `refract`.
+
+```bash
+pip install refract-venv
+refract install
+source ~/.zshrc    # bash: source ~/.bashrc
+```
+
+If you already use pipx for CLI tools:
+
+```bash
+pipx install refract-venv
+refract install
+source ~/.zshrc    # bash: source ~/.bashrc
+```
+
+### What `refract install` does
+
+- Creates `~/.refract/` and `refract.json` (default colorway: green/black)
+- Installs prompt integration in `~/.zshrc` and `~/.bashrc`
+- Installs the shell wrapper in both files (reloads after `refract colorway`)
+- Tells you to restart or source your shell
+
+It does **not** install the `refract` executable. Re-running it is idempotent: existing snippets are updated, not duplicated.
 
 ### Uninstall
 
+From a source checkout:
+
 ```bash
-# Run the uninstall script
-cd User/path/to/refrect && ./uninstall.sh
+./uninstall.sh
 ```
+
+If you installed the package:
+
+```bash
+pip uninstall refract-venv
+# or: pipx uninstall refract-venv
+```
+
+Virtual environments in `~/.refract/envs/` are left in place. Remove them with `rm -rf ~/.refract`.
 
 ##  Quick Start
 
@@ -190,12 +225,12 @@ Currently in refract environment: django_project
 ---------------
 `refract install`
 
-Sets up global access for refract (usually run automatically during installation).
+Initializes Refract config and shell integration. The executable must already be on your PATH (via `./install.sh`, `pip`, or `pipx`).
 
 **What happens:**
-- Creates symlink in `~/.local/bin/`
-- Adds `~/.local/bin` to your PATH if not already present
-- Updates shell configuration files
+- Creates `~/.refract/` and `refract.json` if needed
+- Writes prompt hooks and the shell wrapper into `~/.zshrc` and `~/.bashrc`
+- Does not create a symlink or install the `refract` command
 
 ## Usage Examples
 
@@ -313,10 +348,13 @@ Refract automatically modifies your shell prompt to show the active environment:
 
 **Solution**:
 ```bash
-# Re-run the install command
-python3 -m refract install
+# From a source checkout, install the command then shell integration
+./install.sh
 
-# Or manually add to PATH
+# If the command exists but shell hooks do not
+refract install
+
+# Make sure ~/.local/bin is on PATH
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 ```
@@ -337,11 +375,11 @@ If active, `REFRACT_ENV` should contain your environment name and `which python`
 
 #### "Permission denied: refract"
 
-**Problem**: The refract.py file doesn't have execute permissions.
+**Problem**: The installed script does not have execute permissions.
 
 **Solution**:
 ```bash
-chmod +x /path/to/refract.py
+chmod +x ~/.local/bin/refract
 ```
 
 #### "Environment 'name' does not exist"
@@ -404,14 +442,14 @@ cat ~/.refract/refract.json
 ### Development Setup
 
 1. Clone the repository
-2. Install in development mode:
+2. Install from source:
    ```bash
-   pip3 install -e . --user
+   ./install.sh --pip
    ```
 3. Make your changes
 4. Test your changes:
    ```bash
-   python3 -m refract --debug list
+   refract --debug list
    ```
 
 ### Code Style
