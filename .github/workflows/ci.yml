@@ -121,3 +121,20 @@ jobs:
           else
             python -m unittest tests.test_install_sh.InstallScriptTests.test_pipx -v
           fi
+
+  ci:
+    name: CI
+    if: always()
+    needs: [build, wheel, sdist, install-script]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every CI job to succeed
+        run: |
+          echo "build=${{ needs.build.result }}"
+          echo "wheel=${{ needs.wheel.result }}"
+          echo "sdist=${{ needs.sdist.result }}"
+          echo "install-script=${{ needs.install-script.result }}"
+          test "${{ needs.build.result }}" = "success"
+          test "${{ needs.wheel.result }}" = "success"
+          test "${{ needs.sdist.result }}" = "success"
+          test "${{ needs.install-script.result }}" = "success"
