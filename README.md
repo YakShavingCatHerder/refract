@@ -446,11 +446,15 @@ cat ~/.refract/refract.json
    ```bash
    ./install.sh --pip
    ```
-3. Make your changes
-4. Test your changes:
-   ```bash
-   refract --debug list
-   ```
+### Testing
+
+CLI tests use a temporary `HOME` and require `refract` on PATH (install the wheel or run `./install.sh --pip` first):
+
+```bash
+python -m unittest discover -s tests -v -p 'test_cli.py'
+```
+
+`./install.sh` methods are tested in CI with `REFRACT_TEST_INSTALL_SH=1`.
 
 ### Code Style
 
