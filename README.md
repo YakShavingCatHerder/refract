@@ -39,11 +39,11 @@ Refract itself depends only on Python's standard library. The `refract` command 
 - Python 3.10 or higher
 - bash or zsh
 
-pip is optional. pipx is optional.
+pipx is optional.
 
 ### From source (Python 3 only)
 
-Best for minimal servers that may not have pip:
+Best for minimal servers that may not have pipx:
 
 ```bash
 git clone git@github.com:YakShavingCatHerder/refract.git
@@ -53,15 +53,6 @@ source ~/.zshrc    # bash: source ~/.bashrc
 ```
 
 This copies `refract.py` to `~/.local/bin/refract`, then runs `refract install`.
-
-### From source with pip
-
-```bash
-git clone git@github.com:YakShavingCatHerder/refract.git
-cd refract
-./install.sh --pip
-source ~/.zshrc    # bash: source ~/.bashrc
-```
 
 ### From source with pipx (optional)
 
@@ -74,19 +65,24 @@ source ~/.zshrc    # bash: source ~/.bashrc
 
 The distribution name is `refract-venv`. The command is `refract`.
 
-```bash
-pip install refract-venv
-refract install
-source ~/.zshrc    # bash: source ~/.bashrc
-```
-
-If you already use pipx for CLI tools:
+Prefer pipx. Homebrew’s `pip3` will refuse to install into the system Python (PEP 668).
 
 ```bash
 pipx install refract-venv
 refract install
 source ~/.zshrc    # bash: source ~/.bashrc
 ```
+
+If `refract` is not found after `pipx install`, `~/.local/bin` is not on PATH yet:
+
+```bash
+pipx ensurepath
+source ~/.zshrc    # bash: source ~/.bashrc
+refract install
+source ~/.zshrc
+```
+
+`pipx ensurepath` only updates your shell config. Source or open a new terminal before `refract` will resolve. The second source loads the prompt hook that `refract install` just wrote.
 
 ### What `refract install` does
 
@@ -108,8 +104,7 @@ From a source checkout:
 If you installed the package:
 
 ```bash
-pip uninstall refract-venv
-# or: pipx uninstall refract-venv
+pipx uninstall refract-venv
 ```
 
 Virtual environments in `~/.refract/envs/` are left in place. Remove them with `rm -rf ~/.refract`.
@@ -449,11 +444,11 @@ cat ~/.refract/refract.json
 1. Clone the repository
 2. Install from source:
    ```bash
-   ./install.sh --pip
+   ./install.sh
    ```
 ### Testing
 
-CLI tests use a temporary `HOME` and require `refract` on PATH (install the wheel or run `./install.sh --pip` first):
+CLI tests use a temporary `HOME` and require `refract` on PATH (install the wheel or run `./install.sh` first):
 
 ```bash
 python -m unittest discover -s tests -v -p 'test_cli.py'

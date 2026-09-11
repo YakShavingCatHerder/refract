@@ -98,7 +98,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        method: [python, pip, pipx]
+        method: [python, pipx]
     steps:
       - uses: actions/checkout@v4
 
@@ -118,8 +118,6 @@ jobs:
         run: |
           if [ "${{ matrix.method }}" = "python" ]; then
             python -m unittest tests.test_install_sh.InstallScriptTests.test_python_only -v
-          elif [ "${{ matrix.method }}" = "pip" ]; then
-            python -m unittest tests.test_install_sh.InstallScriptTests.test_pip -v
           else
             python -m unittest tests.test_install_sh.InstallScriptTests.test_pipx -v
           fi
