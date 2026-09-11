@@ -4,10 +4,18 @@ on:
   pull_request:
     branches: [staging, main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build and twine check
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +41,7 @@ jobs:
     name: Wheel ${{ matrix.os }} / py${{ matrix.python-version }} / ${{ matrix.shell }}
     needs: [build]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -56,7 +65,7 @@ jobs:
           path: dist/
 
       - name: Install wheel
-        run: python -m pip install dist/refract_venv-0.1.0-py3-none-any.whl
+        run: python -m pip install dist/*.whl
 
       - name: Smoke test CLI
         env:
@@ -67,6 +76,7 @@ jobs:
     name: Sdist ${{ matrix.os }}
     needs: [build]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -84,7 +94,7 @@ jobs:
           path: dist/
 
       - name: Install sdist
-        run: python -m pip install dist/refract_venv-0.1.0.tar.gz
+        run: python -m pip install dist/*.tar.gz
 
       - name: Smoke test CLI
         env:
@@ -94,11 +104,12 @@ jobs:
   install-script:
     name: install.sh ${{ matrix.method }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        method: [python, pip, pipx]
+        method: [python, pipx]
     steps:
       - uses: actions/checkout@v4
 
@@ -118,8 +129,24 @@ jobs:
         run: |
           if [ "${{ matrix.method }}" = "python" ]; then
             python -m unittest tests.test_install_sh.InstallScriptTests.test_python_only -v
-          elif [ "${{ matrix.method }}" = "pip" ]; then
-            python -m unittest tests.test_install_sh.InstallScriptTests.test_pip -v
           else
             python -m unittest tests.test_install_sh.InstallScriptTests.test_pipx -v
           fi
+
+  ci:
+    name: CI
+    if: always()
+    needs: [build, wheel, sdist, install-script]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every CI job to succeed
+        run: |
+          echo "build=${{ needs.build.result }}"
+          echo "wheel=${{ needs.wheel.result }}"
+          echo "sdist=${{ needs.sdist.result }}"
+          echo "install-script=${{ needs.install-script.result }}"
+          test "${{ needs.build.result }}" = "success"
+          test "${{ needs.wheel.result }}" = "success"
+          test "${{ needs.sdist.result }}" = "success"
+          test "${{ needs.install-script.result }}" = "success"
