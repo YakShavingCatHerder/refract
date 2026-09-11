@@ -26,6 +26,20 @@ jobs:
             exit 1
           fi
 
+      - name: Require tag to match pyproject.toml
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          expected="${tag#v}"
+          project_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' pyproject.toml | head -n 1)"
+          if [ -z "$project_version" ]; then
+            echo "::error::Could not read version from pyproject.toml."
+            exit 1
+          fi
+          if [ "$project_version" != "$expected" ]; then
+            echo "::error::Tag '$tag' does not match pyproject.toml version '$project_version'."
+            exit 1
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
