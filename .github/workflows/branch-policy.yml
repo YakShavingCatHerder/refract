@@ -1,0 +1,19 @@
+name: Branch policy
+
+on:
+  pull_request_target:
+    branches: [main]
+
+jobs:
+  main-from-staging:
+    name: main-from-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require staging as the source branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$HEAD_REF" != "staging" ]; then
+            echo "::error::PRs into main must come from staging (got '$HEAD_REF'). Retarget this PR to staging."
+            exit 1
+          fi
