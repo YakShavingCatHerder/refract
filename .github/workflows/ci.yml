@@ -7,10 +7,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build and twine check
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +41,7 @@ jobs:
     name: Wheel ${{ matrix.os }} / py${{ matrix.python-version }} / ${{ matrix.shell }}
     needs: [build]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -70,6 +76,7 @@ jobs:
     name: Sdist ${{ matrix.os }}
     needs: [build]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -97,6 +104,7 @@ jobs:
   install-script:
     name: install.sh ${{ matrix.method }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -130,6 +138,7 @@ jobs:
     if: always()
     needs: [build, wheel, sdist, install-script]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require every CI job to succeed
         run: |
