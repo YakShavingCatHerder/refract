@@ -8,13 +8,14 @@ Install Refract from this source tree.
 Usage:
   ./install.sh          Python 3 only (copy refract.py onto PATH)
   ./install.sh --pip    python3 + pip (editable install)
+  ./install.sh --pipx   python3 + pipx (editable install)
   ./install.sh --help
 
-After either method, this script runs: refract install
+After any method, this script runs: refract install
 that sets up ~/.refract/ and shell integration. It does not
-install the executable; these two methods do that.
+install the executable; these methods do that.
 
-pipx is not required.
+pipx is optional and only used when --pipx is passed.
 EOF
 }
 
@@ -50,12 +51,20 @@ install_with_pip() {
     python3 -m pip install --user --editable "$ROOT"
 }
 
+install_with_pipx() {
+    echo "Installing refract with python3 + pipx..."
+    if ! command -v pipx >/dev/null 2>&1; then
+        echo "pipx was not found. Install pipx, or use ./install.sh or ./install.sh --pip." >&2
+        exit 1
+    fi
+    pipx install --editable "$ROOT"
+}
+
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
 case "${1:-}" in
-    "" ) ;;
-    --pip) ;;
+    ""|--pip|--pipx) ;;
     -h|--help) usage; exit 0 ;;
     *)
         echo "Unknown option: $1" >&2
@@ -71,11 +80,11 @@ fi
 
 ensure_local_bin_on_path
 
-if [ "${1:-}" = "--pip" ]; then
-    install_with_pip
-else
-    install_python_only
-fi
+case "${1:-}" in
+    --pip) install_with_pip ;;
+    --pipx) install_with_pipx ;;
+    *) install_python_only ;;
+esac
 
 echo "Initializing Refract config and shell integration..."
 refract install
