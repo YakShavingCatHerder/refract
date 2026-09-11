@@ -77,10 +77,35 @@ jobs:
           REFRACT_TEST_SHELL: /bin/bash
         run: python -m unittest discover -s tests -v -p 'test_cli.py'
 
+  github-release:
+    name: GitHub Release
+    needs:
+      - smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.whl dist/*.tar.gz \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --verify-tag
+
   publish:
     name: Publish to PyPI
     needs:
-      - smoke
+      - github-release
     runs-on: ubuntu-latest
     environment:
       name: pypi
