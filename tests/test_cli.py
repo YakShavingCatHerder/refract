@@ -165,6 +165,13 @@ class EnvLifecycleTests(IsolatedHomeTest):
         self.assertEqual(config["environments"]["frontend"]["colorway"]["text"], "red")
         self.assertEqual(config["colorway"]["background"], "green")
 
+    def test_init_color_then_use_exports(self):
+        self.run_refract("init", "frontend", "--color", "black/red")
+        result = self.run_refract("use", "frontend", timeout=30)
+        self.assertIn("REFRACT_ENV=frontend", result.stdout)
+        self.assertIn("REFRACT_BG=black", result.stdout)
+        self.assertIn("REFRACT_FG=red", result.stdout)
+
     def test_init_rejects_invalid_colorway_without_creating(self):
         result = self.run_refract("init", "frontend", "--color", "octarine/black", check=False)
         self.assertIn("Invalid color", result.stdout)
