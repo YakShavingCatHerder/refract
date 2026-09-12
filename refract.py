@@ -249,26 +249,37 @@ def print_colorway_exports(env_name=None):
     print(f"export REFRACT_FG={text}")
 
 
-def set_colorway(spec, env_name=None):
-    """Set prompt colors as background/text (e.g. green/black).
-
-    With env_name, or with REFRACT_ENV set, updates that environment.
-    Otherwise updates the global default.
-    """
+def parse_colorway_spec(spec, usage=None):
+    """Return (background, text) or None after printing an error."""
     parts = spec.split("/", 1)
     if len(parts) != 2 or not parts[0] or not parts[1]:
-        print("Usage: refract colorway <background>/<text> [env_name]")
-        print("Example: refract colorway green/black")
-        print("Example: refract colorway cyan/white frontend")
-        return 1
-
+        print(usage or "Usage: refract colorway <background>/<text> [env_name]")
+        return None
     background, text = parts[0].strip().lower(), parts[1].strip().lower()
     invalid = [c for c in (background, text) if not validate_color(c)]
     if invalid:
         supported = ", ".join(sorted(COLOR_NAMES))
         print(f"Invalid color(s): {', '.join(invalid)}")
         print(f"Supported colors: {supported}")
+        return None
+    return background, text
+
+
+def set_colorway(spec, env_name=None):
+    """Set prompt colors as background/text (e.g. green/black).
+
+    With env_name, or with REFRACT_ENV set, updates that environment.
+    Otherwise updates the global default.
+    """
+    parsed = parse_colorway_spec(
+        spec,
+        usage="Usage: refract colorway <background>/<text> [env_name]\n"
+        "Example: refract colorway green/black\n"
+        "Example: refract colorway cyan/white frontend",
+    )
+    if parsed is None:
         return 1
+    background, text = parsed
 
     if env_name is None:
         env_name = os.environ.get("REFRACT_ENV") or None
@@ -318,16 +329,72 @@ def list_envs():
         print("No environments found. Use 'refract init <name>' to create one.")
 
 
-def create_env(name):
+def parse_init_args(args):
+    """Parse `init <env_name> [--color background/text]`.
+
+    Returns (name, color_spec) or None after printing usage.
+    """
+    usage = (
+        "Usage: refract init <env_name> [--color background/text]\n"
+        "Example: refract init frontend --color black/red"
+    )
+    name = None
+    color_spec = None
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--color" or arg.startswith("--color="):
+            if color_spec is not None:
+                print(usage)
+                return None
+            if arg == "--color":
+                if i + 1 >= len(args):
+                    print(usage)
+                    return None
+                color_spec = args[i + 1]
+                i += 2
+            else:
+                color_spec = arg.split("=", 1)[1]
+                if not color_spec:
+                    print(usage)
+                    return None
+                i += 1
+            continue
+        if arg.startswith("-"):
+            print(f"Unknown option: {arg}")
+            print(usage)
+            return None
+        if name is not None:
+            print(usage)
+            return None
+        name = arg
+        i += 1
+    if not name:
+        print(usage)
+        return None
+    return name, color_spec
+
+
+def create_env(name, colorway_spec=None):
     env_path = ENVS_DIR / name
     if env_path.exists():
         print(f"Environment '{name}' already exists.")
         return
     if not name.isidentifier():
         print("Environment name must be a valid identifier (no spaces or special characters).")
-        return 
+        return
+    if colorway_spec is not None:
+        parsed = parse_colorway_spec(
+            colorway_spec,
+            usage="Usage: refract init <env_name> [--color background/text]\n"
+            "Example: refract init frontend --color black/red",
+        )
+        if parsed is None:
+            return 1
     subprocess.run([sys.executable, "-m", "venv", str(env_path)])
     print(f"Created new virtualenv at {env_path}")
+    if colorway_spec is not None:
+        return set_colorway(colorway_spec, name)
 
 def activate_env(name):
     env_path = ENVS_DIR / name
@@ -406,7 +473,7 @@ refract - Lightweight Virtualenv Manager
 
 Usage:
   refract install           Initialize config and shell integration
-  refract init <env_name>   Create a new virtual environment
+  refract init <env_name> [--color bg/fg]  Create a virtual environment
   refract list              List all existing virtual environments
   refract use <env_name>    Activate the specified environment
   refract current           Show currently active environment
@@ -416,6 +483,7 @@ Usage:
 Examples:
   refract install
   refract init myenv
+  refract init frontend --color black/red
   refract list
   refract use myenv
   refract current
@@ -447,8 +515,13 @@ def main():
     cmd = args[0]
     if cmd == "list":
         list_envs()
-    elif cmd == "init" and len(args) >= 2:
-        create_env(args[1])
+    elif cmd == "init":
+        parsed = parse_init_args(args[1:])
+        if parsed is None:
+            sys.exit(1)
+        name, color_spec = parsed
+        if create_env(name, color_spec):
+            sys.exit(1)
     elif cmd == "use" and len(args) >= 2:
         activate_env(args[1])
     elif cmd == "current":
