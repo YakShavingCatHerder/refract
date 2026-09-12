@@ -2,6 +2,11 @@
 
 **Lightweight Virtual Environment Manager for Python**
 
+[![CI](https://github.com/YakShavingCatHerder/refract/actions/workflows/ci.yml/badge.svg)](https://github.com/YakShavingCatHerder/refract/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/refract-venv)](https://pypi.org/project/refract-venv/)
+[![Python](https://img.shields.io/pypi/pyversions/refract-venv)](https://pypi.org/project/refract-venv/)
+[![License: MIT](https://img.shields.io/pypi/l/refract-venv)](LICENSE)
+
 Refract centralizes your Python virtual environments in a single location, providing simple commands to create, manage, and switch between project contexts—without the complexity of traditional virtual environment tools.
 
 ## Demo
