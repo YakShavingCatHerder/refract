@@ -22,6 +22,8 @@ WRAPPER_MARK = "# >>> refract shell wrapper >>>"
 USE_PROBE = """# refract CI probe: exit the nested login shell after activation
 if [ -n "${REFRACT_ENV:-}" ] && [ -n "${REFRACT_CI_USE_TEST:-}" ]; then
   printf 'REFRACT_ENV=%s\\n' "$REFRACT_ENV"
+  printf 'REFRACT_BG=%s\\n' "$REFRACT_BG"
+  printf 'REFRACT_FG=%s\\n' "$REFRACT_FG"
   command -v python || command -v python3
   exit 0
 fi
@@ -51,6 +53,8 @@ class IsolatedHomeTest(unittest.TestCase):
         self.env = os.environ.copy()
         self.env["HOME"] = str(self.home)
         self.env.pop("REFRACT_ENV", None)
+        self.env.pop("REFRACT_BG", None)
+        self.env.pop("REFRACT_FG", None)
         self.env["REFRACT_CI_USE_TEST"] = "1"
         shell = os.environ.get("REFRACT_TEST_SHELL") or os.environ.get("SHELL") or "/bin/bash"
         self.env["SHELL"] = shell
@@ -154,6 +158,23 @@ class EnvLifecycleTests(IsolatedHomeTest):
         self.assertIn("Removed environment", removed.stdout)
         self.assertFalse(env_path.exists())
 
+    def test_init_with_colorway(self):
+        self.run_refract("init", "frontend", "--color", "black/red")
+        config = self.config()
+        self.assertEqual(config["environments"]["frontend"]["colorway"]["background"], "black")
+        self.assertEqual(config["environments"]["frontend"]["colorway"]["text"], "red")
+        self.assertEqual(config["colorway"]["background"], "green")
+
+    def test_init_rejects_invalid_colorway_without_creating(self):
+        result = self.run_refract("init", "frontend", "--color", "octarine/black", check=False)
+        self.assertIn("Invalid color", result.stdout)
+        self.assertFalse((self.envs_dir() / "frontend").exists())
+
+    def test_init_rejects_positional_colorway(self):
+        result = self.run_refract("init", "frontend", "black/red", check=False)
+        self.assertIn("--color", result.stdout)
+        self.assertFalse((self.envs_dir() / "frontend").exists())
+
     def test_init_rejects_invalid_name(self):
         result = self.run_refract("init", "my-project", check=False)
         self.assertIn("valid identifier", result.stdout)
@@ -177,6 +198,8 @@ class EnvLifecycleTests(IsolatedHomeTest):
         result = self.run_refract("use", "use_env", timeout=30)
         self.assertIn("Switching to environment 'use_env'", result.stdout)
         self.assertIn("REFRACT_ENV=use_env", result.stdout)
+        self.assertIn("REFRACT_BG=green", result.stdout)
+        self.assertIn("REFRACT_FG=black", result.stdout)
         python_path = None
         for line in result.stdout.splitlines():
             if "python" in line and "use_env" in line:
@@ -195,8 +218,42 @@ class ColorwayTests(IsolatedHomeTest):
         self.assertEqual(config["colorway"]["background"], "cyan")
         self.assertEqual(config["colorway"]["text"], "white")
         zshrc = (self.home / ".zshrc").read_text()
-        self.assertIn("cyan", zshrc)
-        self.assertIn("white", zshrc)
+        self.assertIn("REFRACT_BG", zshrc)
+        self.assertIn("REFRACT_FG", zshrc)
+
+    def test_colorway_per_env_does_not_change_default(self):
+        self.run_refract("init", "frontend")
+        self.run_refract("colorway", "blue/black", "frontend")
+        config = self.config()
+        self.assertEqual(config["colorway"]["background"], "green")
+        self.assertEqual(config["environments"]["frontend"]["colorway"]["background"], "blue")
+        self.assertEqual(config["environments"]["frontend"]["colorway"]["text"], "black")
+
+    def test_colorway_inside_env_uses_refract_env(self):
+        self.run_refract("init", "backend")
+        self.run_refract("colorway", "white/green", extra_env={"REFRACT_ENV": "backend"})
+        config = self.config()
+        self.assertEqual(config["colorway"]["background"], "green")
+        self.assertEqual(config["environments"]["backend"]["colorway"]["background"], "white")
+        self.assertEqual(config["environments"]["backend"]["colorway"]["text"], "green")
+
+    def test_colorway_missing_env(self):
+        result = self.run_refract("colorway", "blue/black", "nope", check=False)
+        self.assertIn("does not exist", result.stdout)
+
+    def test_rm_drops_env_colorway(self):
+        self.run_refract("init", "gone")
+        self.run_refract("colorway", "red/white", "gone")
+        self.run_refract("rm", "gone")
+        self.assertNotIn("gone", self.config().get("environments", {}))
+
+    def test_use_exports_env_colorway(self):
+        self.run_refract("init", "frontend")
+        self.run_refract("colorway", "blue/black", "frontend")
+        result = self.run_refract("use", "frontend", timeout=30)
+        self.assertIn("REFRACT_ENV=frontend", result.stdout)
+        self.assertIn("REFRACT_BG=blue", result.stdout)
+        self.assertIn("REFRACT_FG=black", result.stdout)
 
     def test_colorway_rejects_invalid(self):
         result = self.run_refract("colorway", "octarine/black", check=False)
