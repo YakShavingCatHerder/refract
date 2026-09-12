@@ -301,11 +301,9 @@ def set_colorway(spec, env_name=None):
     print(f"[refract] Colorway for {scope} set to {background} background with {text} text.")
     if updated:
         print(f"[refract] Updated prompt integration in: {', '.join(updated)}")
-    if env_name and os.environ.get("REFRACT_ENV") == env_name:
-        print("[refract] Prompt colors will update in this shell.")
-    elif env_name:
+    if env_name and os.environ.get("REFRACT_ENV") != env_name:
         print(f"[refract] Run 'refract use {env_name}' to apply.")
-    else:
+    elif not env_name:
         print("[refract] Default applies to environments that have no colorway of their own.")
     return 0
 
