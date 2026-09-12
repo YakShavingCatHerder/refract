@@ -30,16 +30,26 @@ fi
 """
 
 
+_REFRACT = None
+
+
 def which_refract() -> str:
-    path = shutil.which("refract")
-    if not path:
-        raise unittest.SkipTest("refract is not on PATH")
-    return path
+    """Return the absolute path to `refract`, or fail the suite."""
+    global _REFRACT
+    if _REFRACT is None:
+        path = shutil.which("refract")
+        if not path:
+            raise AssertionError(
+                "refract is not on PATH. Install the wheel or run ./install.sh first."
+            )
+        _REFRACT = str(Path(path).resolve())
+        print(f"Using refract at {_REFRACT}", file=sys.stderr)
+    return _REFRACT
 
 
 class IsolatedHomeTest(unittest.TestCase):
     def setUp(self):
-        which_refract()
+        self.refract = which_refract()
         self._tmpdir = tempfile.mkdtemp(prefix="refract-test-")
         self.home = Path(self._tmpdir) / "home"
         self.home.mkdir()
@@ -67,7 +77,7 @@ class IsolatedHomeTest(unittest.TestCase):
         if extra_env:
             env.update(extra_env)
         result = subprocess.run(
-            ["refract", *args],
+            [self.refract, *args],
             capture_output=True,
             text=True,
             env=env,
