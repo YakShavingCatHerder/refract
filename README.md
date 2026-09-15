@@ -92,9 +92,9 @@ source ~/.zshrc
 
 ### What `refract install` does
 
-- Creates `~/.refract/` and `refract.json` (default colorway: green/black)
+- Creates `~/.refract/` and `refract.json` (default colorway: green/black; per-env colorways live under `environments`)
 - Installs prompt integration in `~/.zshrc` and `~/.bashrc`
-- Installs the shell wrapper in both files (reloads after `refract colorway`)
+- Installs the shell wrapper in both files (reloads colors after `refract colorway` in an active env)
 - Tells you to restart or source your shell
 
 It does **not** install the `refract` executable. Re-running it is idempotent: existing snippets are updated, not duplicated.
@@ -135,17 +135,22 @@ refract rm myproject
 
 ##  Commands Reference
 
-`refract init <name>`
+`refract init <name> [--color background/text]`
 
 Creates a new virtual environment with the specified name.
 
 **Parameters:**
 - `environment_name`: Must be a valid Python identifier (letters, numbers, underscores only)
+- `--color background/text` (optional): Per-env colorway, same as `refract colorway`
 
 **Example:**
 ```bash
 $ refract init django_project
 Created new virtualenv at /path/to/.refract/envs/django_project
+
+$ refract init frontend --color black/red
+Created new virtualenv at /path/to/.refract/envs/frontend
+[refract] Colorway for environment 'frontend' set to black background with red text.
 ```
 
 **What happens:**
@@ -153,6 +158,7 @@ Created new virtualenv at /path/to/.refract/envs/django_project
 - Uses Python's built-in `venv` module
 - Validates the environment name format
 - Prevents duplicate environment creation
+- Optional colorway is stored on that env in `refract.json`
 ---------------
 `refract list`
 
@@ -237,6 +243,24 @@ Initializes Refract config and shell integration. The executable must already be
 - Creates `~/.refract/` and `refract.json` if needed
 - Writes prompt hooks and the shell wrapper into `~/.zshrc` and `~/.bashrc`
 - Does not create a symlink or install the `refract` command
+---------------
+`refract colorway <background>/<text> [env_name]`
+
+Sets prompt colors. The eight ANSI names are: black, red, green, yellow, blue, magenta, cyan, white.
+
+**Examples:**
+```bash
+$ refract colorway green/black
+[refract] Colorway for default set to green background with black text.
+
+$ refract colorway blue/black frontend
+[refract] Colorway for environment 'frontend' set to blue background with black text.
+```
+
+**What happens:**
+- With no env name, updates the global default in `refract.json` (used by envs that have no colorway of their own)
+- With an env name, or while `REFRACT_ENV` is set, updates that environment only
+- `refract use <name>` exports `REFRACT_BG` and `REFRACT_FG` for the prompt hook
 
 ## Usage Examples
 
