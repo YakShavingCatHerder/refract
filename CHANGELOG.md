@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-15
+
 ### Added
 
 - Per-environment colorways in `refract.json` (`refract colorway <bg>/<fg> [env]`, or `refract init <env> --color <bg>/<fg>`)
@@ -49,5 +51,6 @@ First PyPI release. Distribution name is `refract-venv`; the command is `refract
 - macOS and Linux only. Windows is not supported.
 - Requires Python 3.10 or newer. No runtime dependencies.
 
-[Unreleased]: https://github.com/YakShavingCatHerder/refract/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/YakShavingCatHerder/refract/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/YakShavingCatHerder/refract/releases/tag/v0.1.1
 [0.1.0]: https://github.com/YakShavingCatHerder/refract/releases/tag/v0.1.0
