@@ -20,7 +20,7 @@ Type "refract init frontend"
 Enter
 Sleep 7s
 
-Type "refract init backend"
+Type "refract init backend --color black/red"
 Enter
 Sleep 7s
 
@@ -41,10 +41,6 @@ Enter
 Sleep 6s
 
 Type "refract use backend"
-Enter
-Sleep 7s
-
-Type "refract colorway cyan/blue"
 Enter
 Sleep 7s
 
