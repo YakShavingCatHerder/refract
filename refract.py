@@ -379,10 +379,10 @@ def create_env(name, colorway_spec=None):
     env_path = ENVS_DIR / name
     if env_path.exists():
         print(f"Environment '{name}' already exists.")
-        return
+        return 1
     if not name.isidentifier():
         print("Environment name must be a valid identifier (no spaces or special characters).")
-        return
+        return 1
     if colorway_spec is not None:
         parsed = parse_colorway_spec(
             colorway_spec,
@@ -402,7 +402,7 @@ def activate_env(name):
 
     if not activate_script.exists():
         print(f"Environment '{name}' does not exist.")
-        return
+        return 1
 
     background, text = get_colorway(name)
 
@@ -440,7 +440,7 @@ def remove_env(name):
     env_path = ENVS_DIR / name
     if not env_path.exists():
         print(f"Environment '{name}' not found.")
-        return
+        return 1
     subprocess.run(["rm", "-rf", str(env_path)])
     config = load_config()
     environments = config.get("environments") or {}
@@ -510,7 +510,7 @@ def main():
 
     if not args:
         print_usage()
-        return
+        sys.exit(1)
 
     cmd = args[0]
     if cmd == "list":
@@ -523,11 +523,13 @@ def main():
         if create_env(name, color_spec):
             sys.exit(1)
     elif cmd == "use" and len(args) >= 2:
-        activate_env(args[1])
+        if activate_env(args[1]):
+            sys.exit(1)
     elif cmd == "current":
         show_current_env()
     elif cmd == "rm" and len(args) >= 2:
-        remove_env(args[1])
+        if remove_env(args[1]):
+            sys.exit(1)
     elif cmd == "colorway":
         if len(args) >= 2 and args[1] == "--exports":
             print_colorway_exports(os.environ.get("REFRACT_ENV"))
@@ -541,6 +543,7 @@ def main():
     else:
         print("Invalid command or missing arguments.\n")
         print_usage()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

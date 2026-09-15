@@ -99,12 +99,14 @@ class IsolatedHomeTest(unittest.TestCase):
 
 class UsageTests(IsolatedHomeTest):
     def test_no_args_prints_usage(self):
-        result = self.run_refract()
+        result = self.run_refract(check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("refract install", result.stdout)
         self.assertIn("refract init", result.stdout)
 
     def test_invalid_command(self):
-        result = self.run_refract("not-a-command")
+        result = self.run_refract("not-a-command", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("Invalid command", result.stdout)
         self.assertIn("refract init", result.stdout)
 
@@ -184,30 +186,36 @@ class EnvLifecycleTests(IsolatedHomeTest):
 
     def test_init_rejects_invalid_colorway_without_creating(self):
         result = self.run_refract("init", "frontend", "--color", "octarine/black", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("Invalid color", result.stdout)
         self.assertFalse((self.envs_dir() / "frontend").exists())
 
     def test_init_rejects_positional_colorway(self):
         result = self.run_refract("init", "frontend", "black/red", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("--color", result.stdout)
         self.assertFalse((self.envs_dir() / "frontend").exists())
 
     def test_init_rejects_invalid_name(self):
         result = self.run_refract("init", "my-project", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("valid identifier", result.stdout)
         self.assertFalse((self.envs_dir() / "my-project").exists())
 
     def test_init_rejects_duplicate(self):
         self.run_refract("init", "dupenv")
         result = self.run_refract("init", "dupenv", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("already exists", result.stdout)
 
     def test_rm_missing(self):
         result = self.run_refract("rm", "nope", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("not found", result.stdout)
 
     def test_use_missing(self):
         result = self.run_refract("use", "nope", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("does not exist", result.stdout)
 
     def test_use_activates_and_returns(self):
@@ -256,6 +264,7 @@ class ColorwayTests(IsolatedHomeTest):
 
     def test_colorway_missing_env(self):
         result = self.run_refract("colorway", "blue/black", "nope", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("does not exist", result.stdout)
 
     def test_rm_drops_env_colorway(self):
@@ -274,6 +283,7 @@ class ColorwayTests(IsolatedHomeTest):
 
     def test_colorway_rejects_invalid(self):
         result = self.run_refract("colorway", "octarine/black", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("Invalid color", result.stdout)
         config_path = self.home / ".refract" / "refract.json"
         if config_path.exists():
@@ -281,6 +291,7 @@ class ColorwayTests(IsolatedHomeTest):
 
     def test_colorway_usage(self):
         result = self.run_refract("colorway", "green", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("Usage: refract colorway", result.stdout)
 
 
