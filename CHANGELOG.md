@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-15
+
 ### Added
 
+- Per-environment colorways in `refract.json` (`refract colorway <bg>/<fg> [env]`, or `refract init <env> --color <bg>/<fg>`)
+- `refract use` exports `REFRACT_BG` / `REFRACT_FG` so each env can have its own prompt colors
 - README demo GIF and `./demo/record.sh` recorder
 - CI gate job so a single `CI` check can be required on PRs
 - Release smoke test: install the built wheel and run CLI tests before PyPI
@@ -17,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Failed commands exit 1 (unknown command, usage with no args, invalid/duplicate `init`, missing `use`/`rm`)
+- Prompt hook reads `REFRACT_BG` / `REFRACT_FG` instead of baking one colorway into shell rc
+- `refract colorway` with no env name sets the global default; with a name (or inside `refract use`) sets that env
 - CI installs `dist/*.whl` / `dist/*.tar.gz` instead of a hardcoded version
 - CI uses a read-only `GITHUB_TOKEN`, concurrency (cancel stale PR runs), and job timeouts
 - Release refuses a tag that does not match `pyproject.toml` `version`
@@ -44,5 +51,6 @@ First PyPI release. Distribution name is `refract-venv`; the command is `refract
 - macOS and Linux only. Windows is not supported.
 - Requires Python 3.10 or newer. No runtime dependencies.
 
-[Unreleased]: https://github.com/YakShavingCatHerder/refract/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/YakShavingCatHerder/refract/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/YakShavingCatHerder/refract/releases/tag/v0.1.1
 [0.1.0]: https://github.com/YakShavingCatHerder/refract/releases/tag/v0.1.0

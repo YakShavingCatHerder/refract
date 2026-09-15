@@ -1,0 +1,23 @@
+name: protect main branch
+
+on:
+  pull_request_target:
+
+jobs:
+  only_staging_can_pr_main:
+    name: only staging can PR into main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require staging as the source branch for PRs into main
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$BASE_REF" != "main" ]; then
+            echo "PR targets '$BASE_REF', not main. Nothing to enforce."
+            exit 0
+          fi
+          if [ "$HEAD_REF" != "staging" ]; then
+            echo "::error::PRs into main must come from staging (got '$HEAD_REF'). Retarget this PR to staging."
+            exit 1
+          fi
